@@ -1,19 +1,25 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { cryptoCards, transactions } from "@workspace/db";
+import { cryptoCards, transactions, wallets } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { CreateCardBody, UpdateCardBody } from "@workspace/api-zod";
 import { randomInt } from "crypto";
 
 const router = Router();
 
+function getWalletId(req: { headers: Record<string, string | string[] | undefined> }): number {
+  const h = req.headers["x-wallet-id"];
+  const v = Array.isArray(h) ? h[0] : h;
+  const n = v ? parseInt(v, 10) : NaN;
+  return !isNaN(n) && n > 0 ? n : 1;
+}
+
 function genCardNumber() {
-  return Array.from({ length: 4 }, () => String(randomInt(1000, 9999))).join("");
+  return Array.from({ length: 4 }, () => String(randomInt(1000, 9999))).join(" ");
 }
 function genCvv() {
   return String(randomInt(100, 999));
 }
-
 function formatCard(card: any) {
   return {
     ...card,
@@ -25,20 +31,22 @@ function formatCard(card: any) {
 
 router.get("/cards", async (req, res) => {
   try {
-    const wallet = await db.query.wallets.findFirst();
-    if (!wallet) return res.json([]);
-    const cards = await db.select().from(cryptoCards).where(eq(cryptoCards.walletId, wallet.id)).orderBy(desc(cryptoCards.createdAt));
+    const walletId = getWalletId(req);
+    const cards = await db.select().from(cryptoCards)
+      .where(eq(cryptoCards.walletId, walletId))
+      .orderBy(desc(cryptoCards.createdAt));
     res.json(cards.map(formatCard));
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
 router.post("/cards", async (req, res) => {
   try {
+    const walletId = getWalletId(req);
     const body = CreateCardBody.parse(req.body);
-    const wallet = await db.query.wallets.findFirst();
-    if (!wallet) return res.status(400).json({ error: "No wallet found" });
+    const wallet = await db.query.wallets.findFirst({ where: eq(wallets.id, walletId) });
+    if (!wallet) return res.status(400).json({ error: "Wallet not found" });
 
     const now = new Date();
     const [card] = await db.insert(cryptoCards).values({
@@ -69,7 +77,7 @@ router.get("/cards/:id", async (req, res) => {
     const [card] = await db.select().from(cryptoCards).where(eq(cryptoCards.id, id));
     if (!card) return res.status(404).json({ error: "Card not found" });
     res.json(formatCard(card));
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -79,9 +87,9 @@ router.patch("/cards/:id", async (req, res) => {
     const id = parseInt(req.params.id);
     const body = UpdateCardBody.parse(req.body);
     const updates: any = {};
-    if (body.status) updates.status = body.status;
+    if (body.status)                     updates.status        = body.status;
     if (body.spendingLimit !== undefined) updates.spendingLimit = String(body.spendingLimit);
-    if (body.nfcEnabled !== undefined) updates.nfcEnabled = body.nfcEnabled;
+    if (body.nfcEnabled !== undefined)    updates.nfcEnabled    = body.nfcEnabled;
 
     const [card] = await db.update(cryptoCards).set(updates).where(eq(cryptoCards.id, id)).returning();
     if (!card) return res.status(404).json({ error: "Card not found" });
@@ -95,14 +103,16 @@ router.patch("/cards/:id", async (req, res) => {
 router.get("/cards/:id/transactions", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const txs = await db.select().from(transactions).where(eq(transactions.cardId, id)).orderBy(desc(transactions.createdAt));
+    const txs = await db.select().from(transactions)
+      .where(eq(transactions.cardId, id))
+      .orderBy(desc(transactions.createdAt));
     res.json(txs.map((tx) => ({
       ...tx,
       amount: Number(tx.amount),
       valueUsd: Number(tx.valueUsd),
       createdAt: tx.createdAt instanceof Date ? tx.createdAt.toISOString() : tx.createdAt,
     })));
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Internal server error" });
   }
 });

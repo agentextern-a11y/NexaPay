@@ -5,9 +5,17 @@ import { eq } from "drizzle-orm";
 
 const router = Router();
 
+function getWalletId(req: { headers: Record<string, string | string[] | undefined> }): number {
+  const h = req.headers["x-wallet-id"];
+  const v = Array.isArray(h) ? h[0] : h;
+  const n = v ? parseInt(v, 10) : NaN;
+  return !isNaN(n) && n > 0 ? n : 1;
+}
+
 router.get("/assets", async (req, res) => {
   try {
-    const rows = await db.select().from(assets);
+    const walletId = getWalletId(req);
+    const rows = await db.select().from(assets).where(eq(assets.walletId, walletId));
     const total = rows.reduce((sum, a) => sum + Number(a.valueUsd), 0);
     const result = rows.map((a) => ({
       ...a,
@@ -19,16 +27,20 @@ router.get("/assets", async (req, res) => {
       allocationPct: total > 0 ? (Number(a.valueUsd) / total) * 100 : 0,
     }));
     res.json(result);
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
 router.get("/assets/:symbol", async (req, res) => {
   try {
+    const walletId = getWalletId(req);
     const { symbol } = req.params;
-    const [asset] = await db.select().from(assets).where(eq(assets.symbol, symbol));
+    const [asset] = await db.select().from(assets)
+      .where(eq(assets.walletId, walletId))
+      .then(rows => rows.filter(a => a.symbol === symbol.toUpperCase()));
     if (!asset) return res.status(404).json({ error: "Asset not found" });
+    const total = asset.valueUsd ? Number(asset.valueUsd) : 0;
     res.json({
       ...asset,
       balance: Number(asset.balance),
@@ -38,7 +50,7 @@ router.get("/assets/:symbol", async (req, res) => {
       changePct24h: Number(asset.changePct24h),
       allocationPct: Number(asset.allocationPct ?? 0),
     });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Internal server error" });
   }
 });

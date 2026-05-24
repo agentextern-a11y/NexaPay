@@ -17,6 +17,7 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _walletIdGetter: (() => string | number | null) | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -27,6 +28,15 @@ let _authTokenGetter: AuthTokenGetter | null = null;
  */
 export function setBaseUrl(url: string | null): void {
   _baseUrl = url ? url.replace(/\/+$/, "") : null;
+}
+
+/**
+ * Register a getter that returns the active wallet ID.  Before every fetch
+ * the getter is invoked; when it returns a non-null value, an
+ * `X-Wallet-Id` header is attached to the request.
+ */
+export function setWalletIdGetter(getter: (() => string | number | null) | null): void {
+  _walletIdGetter = getter;
 }
 
 /**
@@ -355,6 +365,14 @@ export async function customFetch<T = unknown>(
     const token = await _authTokenGetter();
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
+    }
+  }
+
+  // Attach wallet ID header when a getter is configured.
+  if (_walletIdGetter && !headers.has("x-wallet-id")) {
+    const walletId = _walletIdGetter();
+    if (walletId != null) {
+      headers.set("x-wallet-id", String(walletId));
     }
   }
 

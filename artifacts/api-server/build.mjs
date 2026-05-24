@@ -60,6 +60,7 @@ async function buildAll() {
       "@mikro-orm/*",
       "@grpc/*",
       "@swc/*",
+      "@noble/*",
       "@aws-sdk/*",
       "@azure/*",
       "@opentelemetry/*",
