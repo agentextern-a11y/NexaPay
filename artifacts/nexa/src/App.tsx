@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,8 +13,9 @@ import NewCard from "@/pages/new-card";
 import Nfc from "@/pages/nfc";
 import Market from "@/pages/market";
 import SendPage from "@/pages/send";
+import Onboarding from "@/pages/onboarding";
 import NotFound from "@/pages/not-found";
-import { useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,31 +23,59 @@ const queryClient = new QueryClient({
   },
 });
 
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [location] = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">Loading NEXA...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated && location !== "/onboarding") {
+    window.location.replace(
+      (import.meta.env.BASE_URL || "/").replace(/\/$/, "") + "/onboarding"
+    );
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
 function Router() {
   return (
-    <Layout>
-      <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/wallet" component={Wallet} />
-        <Route path="/assets" component={Assets} />
-        <Route path="/assets/:symbol" component={AssetDetail} />
-        <Route path="/transactions" component={Transactions} />
-        <Route path="/cards" component={Cards} />
-        <Route path="/cards/new" component={NewCard} />
-        <Route path="/nfc" component={Nfc} />
-        <Route path="/market" component={Market} />
-        <Route path="/send" component={SendPage} />
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
+    <Switch>
+      <Route path="/onboarding" component={Onboarding} />
+      <Route>
+        <AuthGuard>
+          <Layout>
+            <Switch>
+              <Route path="/" component={Dashboard} />
+              <Route path="/wallet" component={Wallet} />
+              <Route path="/assets" component={Assets} />
+              <Route path="/assets/:symbol" component={AssetDetail} />
+              <Route path="/transactions" component={Transactions} />
+              <Route path="/cards" component={Cards} />
+              <Route path="/cards/new" component={NewCard} />
+              <Route path="/nfc" component={Nfc} />
+              <Route path="/market" component={Market} />
+              <Route path="/send" component={SendPage} />
+              <Route component={NotFound} />
+            </Switch>
+          </Layout>
+        </AuthGuard>
+      </Route>
+    </Switch>
   );
 }
 
 function App() {
-  useEffect(() => {
-    document.documentElement.classList.add("dark");
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

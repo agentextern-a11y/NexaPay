@@ -38,7 +38,9 @@ import type {
   TransactionInput,
   TransactionSummary,
   Wallet,
-  WalletAddress
+  WalletAddress,
+  WalletCreateInput,
+  WalletSession
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -206,6 +208,77 @@ export function useGetWallet<TData = Awaited<ReturnType<typeof getWallet>>, TErr
 
 
 
+
+export const getCreateWalletUrl = () => {
+
+
+
+
+  return `/api/wallet/create`
+}
+
+/**
+ * @summary Create a new wallet account or access existing
+ */
+export const createWallet = async (walletCreateInput: WalletCreateInput, options?: RequestInit): Promise<WalletSession> => {
+
+  return customFetch<WalletSession>(getCreateWalletUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      walletCreateInput,)
+  }
+);}
+
+
+
+
+export const getCreateWalletMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWallet>>, TError,{data: BodyType<WalletCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createWallet>>, TError,{data: BodyType<WalletCreateInput>}, TContext> => {
+
+const mutationKey = ['createWallet'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createWallet>>, {data: BodyType<WalletCreateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createWallet(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateWalletMutationResult = NonNullable<Awaited<ReturnType<typeof createWallet>>>
+    export type CreateWalletMutationBody = BodyType<WalletCreateInput>
+    export type CreateWalletMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a new wallet account or access existing
+ */
+export const useCreateWallet = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWallet>>, TError,{data: BodyType<WalletCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createWallet>>,
+        TError,
+        {data: BodyType<WalletCreateInput>},
+        TContext
+      > => {
+      return useMutation(getCreateWalletMutationOptions(options));
+    }
 
 export const getGetWalletAddressesUrl = () => {
 

@@ -51,6 +51,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/Wallet"
 
+  /wallet/create:
+    post:
+      operationId: createWallet
+      tags: [wallet]
+      summary: Create a new wallet account or access existing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalletCreateInput"
+      responses:
+        "201":
+          description: Wallet created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletSession"
+
   /wallet/addresses:
     get:
       operationId: getWalletAddresses
@@ -705,6 +724,26 @@ components:
           type: string
         icon:
           type: string
+
+    WalletCreateInput:
+      type: object
+      required: [ownerName]
+      properties:
+        ownerName:
+          type: string
+
+    WalletSession:
+      type: object
+      required: [walletId, ownerName, isNew, totalValueUsd]
+      properties:
+        walletId:
+          type: integer
+        ownerName:
+          type: string
+        isNew:
+          type: boolean
+        totalValueUsd:
+          type: number
 
     PlatformStats:
       type: object

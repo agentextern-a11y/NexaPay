@@ -30,6 +30,14 @@ export const GetWalletResponse = zod.object({
 
 
 /**
+ * @summary Create a new wallet account or access existing
+ */
+export const CreateWalletBody = zod.object({
+  "ownerName": zod.string()
+})
+
+
+/**
  * @summary Get deposit addresses for all supported coins
  */
 export const GetWalletAddressesResponseItem = zod.object({

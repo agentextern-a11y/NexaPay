@@ -240,6 +240,17 @@ export interface ActivityItem {
   icon: string;
 }
 
+export interface WalletCreateInput {
+  ownerName: string;
+}
+
+export interface WalletSession {
+  walletId: number;
+  ownerName: string;
+  isNew: boolean;
+  totalValueUsd: number;
+}
+
 export interface PlatformStats {
   totalTransactions: number;
   totalVolumeUsd: number;

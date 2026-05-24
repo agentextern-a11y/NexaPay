@@ -34,3 +34,5 @@ export * from './transactionSummary';
 export * from './transactionType';
 export * from './wallet';
 export * from './walletAddress';
+export * from './walletCreateInput';
+export * from './walletSession';

@@ -7,6 +7,7 @@ import { ArrowUpRight, ArrowDownRight, Activity, Wifi, CreditCard, TrendingUp, S
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { format } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
 
 const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
   send: <ArrowUpRight className="h-4 w-4 text-red-400" />,
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const { data: activity, isLoading: activityLoading } = useGetRecentActivity();
   const { data: assets, isLoading: assetsLoading } = useListAssets();
   const { data: prices } = useGetMarketPrices();
+  const { ownerName } = useAuth();
 
   const topMovers = (prices ?? [])
     .filter((p) => Math.abs(Number(p.changePct24h)) > 0.5)
@@ -42,7 +44,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Welcome back, Alex</p>
+          <p className="text-muted-foreground mt-1">Welcome back, {ownerName}</p>
         </div>
         <div className="flex gap-2">
           <Link href="/send">
