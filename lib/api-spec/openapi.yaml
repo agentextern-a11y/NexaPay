@@ -1,22 +1,35 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: NEXA Payment Crypto API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: wallet
+    description: Wallet operations
+  - name: assets
+    description: Crypto asset holdings
+  - name: transactions
+    description: Transaction history and send
+  - name: cards
+    description: Digital crypto cards
+  - name: nfc
+    description: NFC tap-to-pay
+  - name: market
+    description: Market prices and trends
+  - name: dashboard
+    description: Dashboard summary
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +37,658 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /wallet:
+    get:
+      operationId: getWallet
+      tags: [wallet]
+      summary: Get wallet info
+      responses:
+        "200":
+          description: Wallet info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wallet"
+
+  /wallet/addresses:
+    get:
+      operationId: getWalletAddresses
+      tags: [wallet]
+      summary: Get deposit addresses for all supported coins
+      responses:
+        "200":
+          description: Address list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WalletAddress"
+
+  /assets:
+    get:
+      operationId: listAssets
+      tags: [assets]
+      summary: List all held crypto assets with balances
+      responses:
+        "200":
+          description: Asset list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Asset"
+
+  /assets/{symbol}:
+    get:
+      operationId: getAsset
+      tags: [assets]
+      summary: Get a single asset holding
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Asset detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+
+  /transactions:
+    get:
+      operationId: listTransactions
+      tags: [transactions]
+      summary: List all transactions
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [send, receive, swap, nfc_pay]
+        - name: asset
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Transaction list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
+    post:
+      operationId: createTransaction
+      tags: [transactions]
+      summary: Send crypto to an address
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionInput"
+      responses:
+        "201":
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  /transactions/{id}:
+    get:
+      operationId: getTransaction
+      tags: [transactions]
+      summary: Get transaction detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  /transactions/summary:
+    get:
+      operationId: getTransactionSummary
+      tags: [transactions]
+      summary: Get transaction volume and count summary by type
+      responses:
+        "200":
+          description: Summary stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionSummary"
+
+  /cards:
+    get:
+      operationId: listCards
+      tags: [cards]
+      summary: List all virtual crypto cards
+      responses:
+        "200":
+          description: Card list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CryptoCard"
+    post:
+      operationId: createCard
+      tags: [cards]
+      summary: Issue a new virtual crypto card
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardInput"
+      responses:
+        "201":
+          description: Card issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CryptoCard"
+
+  /cards/{id}:
+    get:
+      operationId: getCard
+      tags: [cards]
+      summary: Get card detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CryptoCard"
+    patch:
+      operationId: updateCard
+      tags: [cards]
+      summary: Freeze/unfreeze or update spending limit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardUpdate"
+      responses:
+        "200":
+          description: Updated card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CryptoCard"
+
+  /cards/{id}/transactions:
+    get:
+      operationId: getCardTransactions
+      tags: [cards]
+      summary: Get spending history for a card
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Card transaction history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
+
+  /nfc/session:
+    post:
+      operationId: initiateNfcSession
+      tags: [nfc]
+      summary: Initiate an NFC tap-to-pay session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NfcSessionInput"
+      responses:
+        "200":
+          description: NFC session token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NfcSession"
+
+  /nfc/confirm:
+    post:
+      operationId: confirmNfcPayment
+      tags: [nfc]
+      summary: Confirm and execute an NFC payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NfcConfirmInput"
+      responses:
+        "200":
+          description: Payment result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  /nfc/history:
+    get:
+      operationId: getNfcHistory
+      tags: [nfc]
+      summary: Recent NFC tap-to-pay transactions
+      responses:
+        "200":
+          description: NFC transaction history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
+
+  /market/prices:
+    get:
+      operationId: getMarketPrices
+      tags: [market]
+      summary: Get current prices for all tracked coins
+      responses:
+        "200":
+          description: Price list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketPrice"
+
+  /market/chart/{symbol}:
+    get:
+      operationId: getMarketChart
+      tags: [market]
+      summary: Get 7-day price chart for a coin
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Chart data points
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChartPoint"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get overall portfolio value, 24h change, and top movers
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Get recent activity feed (last 10 events)
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    Wallet:
+      type: object
+      required: [id, ownerName, totalValueUsd, totalValueChange24h, totalValueChangePct24h, createdAt]
+      properties:
+        id:
+          type: integer
+        ownerName:
+          type: string
+        totalValueUsd:
+          type: number
+        totalValueChange24h:
+          type: number
+        totalValueChangePct24h:
+          type: number
+        createdAt:
+          type: string
+
+    WalletAddress:
+      type: object
+      required: [symbol, name, address, network]
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+        network:
+          type: string
+        qrCode:
+          type: ["string", "null"]
+
+    Asset:
+      type: object
+      required: [id, symbol, name, balance, valueUsd, priceUsd, change24h, changePct24h, logoColor]
+      properties:
+        id:
+          type: integer
+        symbol:
+          type: string
+        name:
+          type: string
+        balance:
+          type: number
+        valueUsd:
+          type: number
+        priceUsd:
+          type: number
+        change24h:
+          type: number
+        changePct24h:
+          type: number
+        logoColor:
+          type: string
+        allocationPct:
+          type: ["number", "null"]
+
+    Transaction:
+      type: object
+      required: [id, type, asset, amount, valueUsd, toAddress, fromAddress, status, createdAt, hash]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [send, receive, swap, nfc_pay]
+        asset:
+          type: string
+        amount:
+          type: number
+        valueUsd:
+          type: number
+        toAddress:
+          type: string
+        fromAddress:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, failed]
+        createdAt:
+          type: string
+        hash:
+          type: string
+        note:
+          type: ["string", "null"]
+        merchantName:
+          type: ["string", "null"]
+        cardId:
+          type: ["integer", "null"]
+
+    TransactionInput:
+      type: object
+      required: [asset, amount, toAddress]
+      properties:
+        asset:
+          type: string
+        amount:
+          type: number
+        toAddress:
+          type: string
+        note:
+          type: string
+
+    TransactionSummary:
+      type: object
+      required: [totalSent, totalReceived, totalNfcPay, totalSwap, countSent, countReceived, countNfcPay]
+      properties:
+        totalSent:
+          type: number
+        totalReceived:
+          type: number
+        totalNfcPay:
+          type: number
+        totalSwap:
+          type: number
+        countSent:
+          type: integer
+        countReceived:
+          type: integer
+        countNfcPay:
+          type: integer
+
+    CryptoCard:
+      type: object
+      required: [id, cardNumber, cardholderName, expiryMonth, expiryYear, cvv, asset, spendingLimit, spentAmount, status, cardType, createdAt]
+      properties:
+        id:
+          type: integer
+        cardNumber:
+          type: string
+        cardholderName:
+          type: string
+        expiryMonth:
+          type: integer
+        expiryYear:
+          type: integer
+        cvv:
+          type: string
+        asset:
+          type: string
+        spendingLimit:
+          type: number
+        spentAmount:
+          type: number
+        status:
+          type: string
+          enum: [active, frozen, cancelled]
+        cardType:
+          type: string
+          enum: [virtual, physical]
+        createdAt:
+          type: string
+        nfcEnabled:
+          type: boolean
+
+    CardInput:
+      type: object
+      required: [cardholderName, asset, spendingLimit, cardType]
+      properties:
+        cardholderName:
+          type: string
+        asset:
+          type: string
+        spendingLimit:
+          type: number
+        cardType:
+          type: string
+          enum: [virtual, physical]
+        nfcEnabled:
+          type: boolean
+
+    CardUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, frozen, cancelled]
+        spendingLimit:
+          type: number
+        nfcEnabled:
+          type: boolean
+
+    NfcSession:
+      type: object
+      required: [sessionToken, expiresAt, merchantName, amount, asset, status]
+      properties:
+        sessionToken:
+          type: string
+        expiresAt:
+          type: string
+        merchantName:
+          type: string
+        amount:
+          type: number
+        asset:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, expired]
+
+    NfcSessionInput:
+      type: object
+      required: [amount, asset, merchantName]
+      properties:
+        amount:
+          type: number
+        asset:
+          type: string
+        merchantName:
+          type: string
+        cardId:
+          type: integer
+
+    NfcConfirmInput:
+      type: object
+      required: [sessionToken]
+      properties:
+        sessionToken:
+          type: string
+        cardId:
+          type: integer
+
+    MarketPrice:
+      type: object
+      required: [symbol, name, priceUsd, change24h, changePct24h, marketCapUsd, volume24hUsd, logoColor]
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        priceUsd:
+          type: number
+        change24h:
+          type: number
+        changePct24h:
+          type: number
+        marketCapUsd:
+          type: number
+        volume24hUsd:
+          type: number
+        logoColor:
+          type: string
+
+    ChartPoint:
+      type: object
+      required: [timestamp, price]
+      properties:
+        timestamp:
+          type: string
+        price:
+          type: number
+
+    DashboardSummary:
+      type: object
+      required: [totalValueUsd, change24h, changePct24h, totalAssets, activeCards, nfcPaymentsThisMonth, topGainer, topLoser]
+      properties:
+        totalValueUsd:
+          type: number
+        change24h:
+          type: number
+        changePct24h:
+          type: number
+        totalAssets:
+          type: integer
+        activeCards:
+          type: integer
+        nfcPaymentsThisMonth:
+          type: integer
+        topGainer:
+          type: string
+        topLoser:
+          type: string
+
+    ActivityItem:
+      type: object
+      required: [id, type, title, subtitle, valueUsd, timestamp, icon]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [send, receive, swap, nfc_pay, card_issued, price_alert]
+        title:
+          type: string
+        subtitle:
+          type: string
+        valueUsd:
+          type: ["number", "null"]
+        timestamp:
+          type: string
+        icon:
+          type: string
