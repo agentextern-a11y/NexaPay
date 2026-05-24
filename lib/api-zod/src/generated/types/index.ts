@@ -26,6 +26,7 @@ export * from './nfcConfirmInput';
 export * from './nfcSession';
 export * from './nfcSessionInput';
 export * from './nfcSessionStatus';
+export * from './platformStats';
 export * from './transaction';
 export * from './transactionInput';
 export * from './transactionStatus';

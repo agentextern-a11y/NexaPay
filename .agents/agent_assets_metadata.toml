@@ -1,0 +1,14 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "2NpTI1_CaEy4P-PwO4tT5"
+uri = "file://artifacts/nexa-site/src/assets/images/app-interface.png"
+type = "image"
+title = "Crypto wallet app interface"
+
+[[generated]]
+id = "d7Gr0IyPFaHMvypjVkE_v"
+uri = "file://artifacts/nexa-site/src/assets/images/nfc-payment.png"
+type = "image"
+title = "NFC contactless payment with phone"

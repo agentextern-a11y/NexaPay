@@ -7,6 +7,7 @@ import cardsRouter from "./cards";
 import nfcRouter from "./nfc";
 import marketRouter from "./market";
 import dashboardRouter from "./dashboard";
+import platformRouter from "./platform";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(cardsRouter);
 router.use(nfcRouter);
 router.use(marketRouter);
 router.use(dashboardRouter);
+router.use(platformRouter);
 
 export default router;

@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/site/"
+title = "NEXA — Official Website"
+version = "1.0.0"
+id = "artifacts/nexa-site"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/site/" ]
+localPort = 18618
+
+[services.development]
+run = "pnpm --filter @workspace/nexa-site run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/nexa-site", "run", "build" ]
+publicDir = "artifacts/nexa-site/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18618"
+BASE_PATH = "/site/"

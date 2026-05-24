@@ -397,3 +397,18 @@ export const GetRecentActivityResponseItem = zod.object({
 export const GetRecentActivityResponse = zod.array(GetRecentActivityResponseItem)
 
 
+/**
+ * @summary Get public platform statistics for the marketing site
+ */
+export const GetPlatformStatsResponse = zod.object({
+  "totalTransactions": zod.number(),
+  "totalVolumeUsd": zod.number(),
+  "activeWallets": zod.number(),
+  "nfcPayments": zod.number(),
+  "supportedAssets": zod.number(),
+  "avgConfirmationMs": zod.number(),
+  "uptimePct": zod.number(),
+  "countriesSupported": zod.number()
+})
+
+

@@ -240,6 +240,17 @@ export interface ActivityItem {
   icon: string;
 }
 
+export interface PlatformStats {
+  totalTransactions: number;
+  totalVolumeUsd: number;
+  activeWallets: number;
+  nfcPayments: number;
+  supportedAssets: number;
+  avgConfirmationMs: number;
+  uptimePct: number;
+  countriesSupported: number;
+}
+
 export type ListTransactionsParams = {
 type?: ListTransactionsType;
 asset?: string;

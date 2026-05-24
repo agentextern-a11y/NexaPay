@@ -391,6 +391,19 @@ paths:
                 items:
                   $ref: "#/components/schemas/ActivityItem"
 
+  /platform/stats:
+    get:
+      operationId: getPlatformStats
+      tags: [dashboard]
+      summary: Get public platform statistics for the marketing site
+      responses:
+        "200":
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformStats"
+
 components:
   schemas:
     HealthStatus:
@@ -692,3 +705,24 @@ components:
           type: string
         icon:
           type: string
+
+    PlatformStats:
+      type: object
+      required: [totalTransactions, totalVolumeUsd, activeWallets, nfcPayments, supportedAssets, avgConfirmationMs, uptimePct, countriesSupported]
+      properties:
+        totalTransactions:
+          type: integer
+        totalVolumeUsd:
+          type: number
+        activeWallets:
+          type: integer
+        nfcPayments:
+          type: integer
+        supportedAssets:
+          type: integer
+        avgConfirmationMs:
+          type: integer
+        uptimePct:
+          type: number
+        countriesSupported:
+          type: integer
