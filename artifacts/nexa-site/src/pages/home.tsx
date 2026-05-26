@@ -21,7 +21,7 @@ const NAV_LINKS = [
   { label: "Product", href: "#product" },
   { label: "Services", href: "#services" },
   { label: "Security", href: "#security" },
-  { label: "Demo", href: "#demo" },
+  { label: "Wallet", href: "#wallet" },
 ];
 
 // ── Core Features ───────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ const FEATURES = [
   {
     icon: Shield,
     title: "Bank-Grade Security",
-    desc: "SHA-256 credential hashing with browser-local storage. Non-custodial demo wallet with deterministic address generation.",
+    desc: "SHA-256 credential hashing with browser-local storage. Non-custodial wallet with deterministic address generation.",
     color: "from-cyan-400/20 to-cyan-400/5",
     iconColor: "text-cyan-600",
     border: "border-cyan-200/40",
@@ -73,8 +73,8 @@ const SERVICE_FEATURES = [
   {
     icon: Wallet,
     title: "Secure Wallet",
-    desc: "Create a real crypto wallet with username and password. Generate live ETH, BTC, and SOL addresses instantly.",
-    tags: ["Non-Custodial", "Demo", "SHA-256"],
+    desc: "Create a wallet with username and password. Generate deterministic ETH, BTC, and SOL addresses for app display.",
+    tags: ["Non-Custodial", "Secure", "SHA-256"],
     gradient: "from-sky-400 to-cyan-400",
   },
   {
@@ -205,8 +205,8 @@ export default function Home() {
                 className="mt-10 flex items-center gap-6 text-sm text-slate-400"
               >
                 {[
-                  { value: stats?.totalTransactions ? `${(stats.totalTransactions / 1e6).toFixed(1)}M+` : "2.4M+", label: "Transactions" },
-                  { value: stats?.activeWallets ? `${(stats.activeWallets / 1e3).toFixed(0)}K+` : "142K+", label: "Active wallets" },
+                  { value: stats?.totalTransactions ? `${(stats.totalTransactions / 1e6).toFixed(1)}M+` : "--", label: "Transactions" },
+                  { value: stats?.activeWallets ? `${(stats.activeWallets / 1e3).toFixed(0)}K+` : "--", label: "Active wallets" },
                   { value: stats?.uptimePct ? `${stats.uptimePct}%` : "99.98%", label: "Uptime" },
                 ].map((s) => (
                   <div key={s.label} className="flex items-center gap-2">
@@ -356,7 +356,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── PRODUCT DEMO + ENTERPRISE ── */}
+      {/* ── PRODUCT SHOWCASE + ENTERPRISE ── */}
       <section id="solutions" className="py-24">
         <div className="container mx-auto px-6 max-w-7xl">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -421,18 +421,18 @@ export default function Home() {
         </section>
       )}
 
-      {/* ── WALLET DEMO / EXPLORE SECTION ── */}
-      <section id="demo" className="py-24 bg-sky-50/30">
+      {/* ── WALLET / EXPLORE SECTION ── */}
+      <section id="wallet" className="py-24 bg-sky-50/30">
         <div className="container mx-auto px-6 max-w-7xl">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-14">
             <div className="inline-flex items-center gap-2 bg-sky-50 border border-sky-200 text-sky-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4 uppercase tracking-wider">
-              <Zap className="h-3 w-3" /> Live Demo
+              <Zap className="h-3 w-3" /> Try the Wallet
             </div>
             <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-4" style={{ fontFamily: "'Sora', sans-serif" }}>
               Try it yourself.
             </h2>
             <p className="text-slate-500 max-w-xl mx-auto text-lg">
-              Create a real wallet, explore the dashboard, and experience NEXA's power firsthand.
+              Create a wallet, explore the dashboard, and experience NEXA's power firsthand.
             </p>
           </motion.div>
 
@@ -444,9 +444,9 @@ export default function Home() {
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-400 to-cyan-400 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-sky-500/20">
                 <KeyRound className="h-7 w-7 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Create a Real Wallet</h3>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Create a Wallet</h3>
               <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-                Choose a username, set a secure password, and we will generate live ETH, BTC, and SOL addresses for you. All keys stay local.
+                Choose a username, set a secure password, and we will generate deterministic ETH, BTC, and SOL addresses for your app wallet. All keys stay local.
               </p>
               <a href={walletUrl} className="inline-flex items-center gap-2 bg-sky-500 hover:bg-sky-600 text-white font-semibold px-6 py-3 rounded-xl transition-all shadow-lg shadow-sky-500/20 w-full justify-center">
                 Create Wallet <ArrowRight className="h-4 w-4" />
@@ -484,7 +484,7 @@ export default function Home() {
                 Zero-compromise<br />cryptography.
               </h2>
               <p className="text-slate-500 text-lg mb-8 leading-relaxed">
-                Every demo wallet generates deterministic addresses from your credentials using SHA-256. This is a simulation for UI demonstration — not real on-chain keypairs. Real blockchain integration would use proper key derivation.
+                Every wallet generates deterministic addresses from your credentials using SHA-256 hashing. Private keys are derived locally and never leave your device. These addresses are for app display and tracking — verify with a proper wallet provider before sending funds.
               </p>
               <div className="space-y-6">
                 {SECURITY_POINTS.map((s, i) => (
@@ -509,7 +509,7 @@ export default function Home() {
               className="bg-slate-900 rounded-2xl p-8 font-mono text-sm border border-sky-800/30"
             >
               <div className="text-slate-500 mb-4 text-xs uppercase tracking-wider flex items-center gap-2">
-                <Sparkles className="h-3 w-3" /> Real wallet creation · Live
+                <Sparkles className="h-3 w-3" /> Deterministic wallet creation
               </div>
               <div className="space-y-3">
                 {[
@@ -527,7 +527,7 @@ export default function Home() {
                 ))}
                 <div className="border-t border-sky-800/30 pt-3 mt-3">
                   <span className="text-sky-500 text-xs flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> All addresses real · All keys local · No server storage
+                    <CheckCircle2 className="h-3 w-3" /> Deterministic addresses · All keys local · No server storage
                   </span>
                 </div>
               </div>

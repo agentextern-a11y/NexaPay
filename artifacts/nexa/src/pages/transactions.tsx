@@ -32,9 +32,9 @@ export default function Transactions() {
   const { data: summary } = useGetTransactionSummary();
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Transactions</h1>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 md:space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Transactions</h1>
         <Select value={typeFilter} onValueChange={setTypeFilter} data-testid="select-tx-filter">
           <SelectTrigger className="w-40 bg-card/50 border-border/50">
             <SelectValue placeholder="Filter by type" />

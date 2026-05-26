@@ -37,18 +37,18 @@ export default function Assets() {
   const totalValue = assets.reduce((sum, a) => sum + Number(a.valueUsd), 0);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-      <div className="flex items-center justify-between">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 md:space-y-8">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Portfolio</h1>
-          <p className="text-muted-foreground mt-1">
-            Total value: <span className="text-primary font-bold text-lg">${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Portfolio</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Total value: <span className="text-primary font-bold">${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </p>
         </div>
-        <TrendingUp className="h-8 w-8 text-primary opacity-60" />
+        <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-primary opacity-60" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
         {/* Pie chart */}
         <Card className="bg-card/50 border-border/50 backdrop-blur-xl">
           <CardContent className="p-6">

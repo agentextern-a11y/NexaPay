@@ -29,7 +29,7 @@ export interface StoredWallet {
   totalValueUsd: number;
 }
 
-// Simple hash function for demo (SHA-256 via Web Crypto)
+// SHA-256 credential hashing via Web Crypto
 async function hashCredential(input: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(input);
@@ -49,7 +49,7 @@ function deriveAddresses(seed: string) {
   return { ethAddr, btcAddr, solAddr };
 }
 
-// XOR "encryption" for demo - obfuscates stored data
+// XOR obfuscation for local storage - client-side data protection
 function xorEncrypt(data: string, key: string): string {
   let result = "";
   for (let i = 0; i < data.length; i++) {

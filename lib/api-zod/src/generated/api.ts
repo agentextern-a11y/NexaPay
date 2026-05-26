@@ -183,7 +183,10 @@ export const ListCardsResponseItem = zod.object({
   "status": zod.enum(['active', 'frozen', 'cancelled']),
   "cardType": zod.enum(['virtual', 'physical']),
   "createdAt": zod.string(),
-  "nfcEnabled": zod.boolean().optional()
+  "nfcEnabled": zod.boolean().optional(),
+  "applePassUrl": zod.string().optional(),
+  "googlePassUrl": zod.string().optional(),
+  "passToken": zod.string().optional()
 })
 export const ListCardsResponse = zod.array(ListCardsResponseItem)
 
@@ -220,7 +223,10 @@ export const GetCardResponse = zod.object({
   "status": zod.enum(['active', 'frozen', 'cancelled']),
   "cardType": zod.enum(['virtual', 'physical']),
   "createdAt": zod.string(),
-  "nfcEnabled": zod.boolean().optional()
+  "nfcEnabled": zod.boolean().optional(),
+  "applePassUrl": zod.string().optional(),
+  "googlePassUrl": zod.string().optional(),
+  "passToken": zod.string().optional()
 })
 
 
@@ -250,7 +256,10 @@ export const UpdateCardResponse = zod.object({
   "status": zod.enum(['active', 'frozen', 'cancelled']),
   "cardType": zod.enum(['virtual', 'physical']),
   "createdAt": zod.string(),
-  "nfcEnabled": zod.boolean().optional()
+  "nfcEnabled": zod.boolean().optional(),
+  "applePassUrl": zod.string().optional(),
+  "googlePassUrl": zod.string().optional(),
+  "passToken": zod.string().optional()
 })
 
 

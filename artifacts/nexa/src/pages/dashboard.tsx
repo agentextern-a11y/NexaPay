@@ -71,7 +71,8 @@ function EmptyWalletState({ ownerName }: { ownerName: string }) {
         Your wallet is ready, {ownerName.split(" ")[0]}
       </h2>
       <p className="text-slate-500 mb-4 max-w-sm leading-relaxed text-base">
-        Your cryptographic keys have been generated and secured. Your addresses are live on-chain.
+        Your wallet addresses are deterministically derived from your credentials for this app session.
+        They are for display purposes only — do not send real funds without proper wallet verification.
       </p>
 
       {/* Display wallet addresses */}
@@ -158,12 +159,12 @@ export default function Dashboard() {
   if (isEmptyWallet) {
     return (
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4 md:mb-6 flex-wrap gap-2">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-800" style={{ fontFamily: "'Sora', sans-serif" }}>Dashboard</h1>
-            <p className="text-slate-500 mt-1">Welcome, {ownerName}</p>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-800" style={{ fontFamily: "'Sora', sans-serif" }}>Dashboard</h1>
+            <p className="text-slate-500 mt-1 text-sm">Welcome, {ownerName}</p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-sky-600 bg-sky-50 px-3 py-1.5 rounded-full border border-sky-200/50">
+          <div className="hidden sm:flex items-center gap-2 text-xs text-sky-600 bg-sky-50 px-3 py-1.5 rounded-full border border-sky-200/50">
             <KeyRound className="h-3 w-3" />
             <span>User: {session?.username}</span>
           </div>
@@ -174,13 +175,13 @@ export default function Dashboard() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <div className="flex items-center justify-between">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 md:space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-800" style={{ fontFamily: "'Sora', sans-serif" }}>Dashboard</h1>
-          <p className="text-slate-500 mt-1">Welcome back, {ownerName}</p>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-800" style={{ fontFamily: "'Sora', sans-serif" }}>Dashboard</h1>
+          <p className="text-slate-500 mt-1 text-sm">Welcome back, {ownerName}</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-sky-600 bg-sky-50 px-3 py-1.5 rounded-full border border-sky-200/50">
+        <div className="hidden sm:flex items-center gap-2 text-xs text-sky-600 bg-sky-50 px-3 py-1.5 rounded-full border border-sky-200/50">
           <KeyRound className="h-3 w-3" />
           <span>User: {session?.username}</span>
         </div>
@@ -188,11 +189,11 @@ export default function Dashboard() {
 
       {/* Stats grid */}
       {summaryLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 w-full" />)}
         </div>
       ) : summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <Card className="col-span-2 glass-card border-sky-200/30 relative overflow-hidden card-lift" data-testid="card-total-balance">
             <div className="absolute top-0 right-0 w-40 h-40 bg-sky-300/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
             <CardContent className="p-6">
@@ -321,7 +322,7 @@ export default function Dashboard() {
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { href: "/wallet", icon: Wallet, label: "Deposit", sub: "View addresses" },
           { href: "/send", icon: Send, label: "Send", sub: "Transfer crypto" },
@@ -347,7 +348,7 @@ export default function Dashboard() {
       {/* Security footer */}
       <div className="flex items-center gap-3 text-xs text-slate-400 mt-4">
         <Shield className="h-4 w-4 text-sky-500 flex-shrink-0" />
-        <span>Session stored locally. Wallet addresses derived from your credentials for demo purposes — not real on-chain keys.</span>
+        <span>Session stored locally. Wallet addresses derived from your credentials using SHA-256. Keys stay in your browser.</span>
       </div>
     </motion.div>
   );

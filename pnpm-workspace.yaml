@@ -160,3 +160,14 @@ overrides:
   esbuild: "0.27.3"
   # Force qs to patched version for GHSA-q8mj-m7cp-5q26 (express transitive dep)
   qs: ">=6.15.2"
+  # Force js-cookie to patched version for GHSA-qjx8-664m-686j (web3auth transitive dep)
+  js-cookie: ">=3.0.7"
+  # Force ws to patched version for GHSA-58qx-3vcg-4xpx (web3auth/ethers transitive dep)
+  ws: ">=8.20.1"
+  # Force uuid to patched version for GHSA-w5hq-g745-h8pq (web3auth/metamask/jayson transitive dep)
+  uuid: ">=11.1.1"
+  # SECURITY NOTE: elliptic@6.6.1 has known CVEs (CVE-2024-48948, CVE-2024-42461).
+  # No patched version (6.6.2+) exists on npm as of 2026-05-26.
+  # It is pulled in transitively by @toruslabs/eccrypto via @web3auth.
+  # This cannot be resolved via pnpm override until upstream publishes a fix.
+  # elliptic: ">=6.6.2"  # Disabled -- no matching version on registry

@@ -74,10 +74,10 @@ export default function Nfc() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 max-w-xl">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 md:space-y-8 max-w-xl">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">NFC Tap-to-Pay</h1>
-        <p className="text-muted-foreground mt-1">Instant contactless crypto payments</p>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">NFC Tap-to-Pay</h1>
+        <p className="text-muted-foreground mt-1 text-sm">Instant contactless crypto payments</p>
       </div>
 
       {/* NFC Interface */}

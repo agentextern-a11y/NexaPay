@@ -37,16 +37,16 @@ export default function Market() {
   });
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <div className="flex items-center justify-between">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 md:space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Market</h1>
-          <p className="text-muted-foreground mt-1">Live cryptocurrency prices</p>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Market</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Live cryptocurrency prices</p>
         </div>
-        <TrendingUp className="h-8 w-8 text-primary opacity-60" />
+        <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-primary opacity-60" />
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         {[["marketCap", "Market Cap"], ["price", "Price"], ["change", "24h Change"]].map(([key, label]) => (
           <button
             key={key}

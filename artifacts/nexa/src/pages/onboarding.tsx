@@ -230,7 +230,7 @@ export default function Onboarding() {
                   Create your wallet
                 </h2>
                 <p className="text-slate-500 mb-8">
-                  Choose a unique username and secure password. We will generate real crypto addresses for you.
+                  Choose a unique username and secure password. We will generate deterministic addresses for display in your wallet.
                 </p>
 
                 <div className="space-y-5">

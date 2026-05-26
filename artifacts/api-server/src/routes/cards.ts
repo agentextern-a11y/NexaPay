@@ -20,6 +20,24 @@ function genCardNumber() {
 function genCvv() {
   return String(randomInt(100, 999));
 }
+function genPassToken() {
+  return Array.from({ length: 32 }, () => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"[randomInt(0, 61)]).join("");
+}
+function generateApplePassUrl(card: any) {
+  const base = process.env.APPLE_WALLET_BASE_URL || "https://wallet.apple.com/nexa";
+  return `${base}/v1/passes/nexa.card/${card.passToken}`;
+}
+function generateGooglePassUrl(card: any) {
+  const base = process.env.GOOGLE_WALLET_BASE_URL || "https://pay.google.com/gp/v/save";
+  const payload = btoa(JSON.stringify({
+    id: `nexa.card.${card.passToken}`,
+    issuer: "NEXA Crypto",
+    cardNumber: card.cardNumber,
+    cardholder: card.cardholderName,
+    expiry: `${String(card.expiryMonth).padStart(2, "0")}/${String(card.expiryYear).slice(-2)}`,
+  }));
+  return `${base}/${payload}`;
+}
 function formatCard(card: any) {
   return {
     ...card,
@@ -48,7 +66,14 @@ router.post("/cards", async (req, res) => {
     const wallet = await db.query.wallets.findFirst({ where: eq(wallets.id, walletId) });
     if (!wallet) return res.status(400).json({ error: "Wallet not found" });
 
+    // Enforce one card per wallet
+    const existing = await db.select().from(cryptoCards).where(eq(cryptoCards.walletId, walletId));
+    if (existing.length > 0) {
+      return res.status(409).json({ error: "Only one card is allowed per wallet. Cancel your existing card to issue a new one." });
+    }
+
     const now = new Date();
+    const passToken = genPassToken();
     const [card] = await db.insert(cryptoCards).values({
       walletId: wallet.id,
       cardNumber: genCardNumber(),
@@ -62,9 +87,14 @@ router.post("/cards", async (req, res) => {
       status: "active",
       cardType: body.cardType as any,
       nfcEnabled: body.nfcEnabled ?? true,
+      passToken,
     }).returning();
 
-    res.status(201).json(formatCard(card));
+    const formatted = formatCard(card);
+    // Generate wallet pass URLs
+    formatted.applePassUrl = generateApplePassUrl(formatted);
+    formatted.googlePassUrl = generateGooglePassUrl(formatted);
+    res.status(201).json(formatted);
   } catch (err: any) {
     if (err.name === "ZodError") return res.status(400).json({ error: err.message });
     res.status(500).json({ error: "Internal server error" });

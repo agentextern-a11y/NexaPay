@@ -105,25 +105,25 @@ export default function Login() {
       </div>
 
       {/* Right panel — login form */}
-      <div className="flex-1 flex items-center justify-center p-8 relative">
+      <div className="flex-1 flex items-center justify-center p-4 md:p-8 relative">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-20 right-20 w-40 h-40 rounded-full bg-sky-200/20 blur-3xl" />
           <div className="absolute bottom-20 left-10 w-56 h-56 rounded-full bg-cyan-200/15 blur-3xl" />
         </div>
 
         <div className="relative z-10 w-full max-w-md">
-          <div className="lg:hidden mb-8">
-            <img src={logoUrl} alt="NEXA" className="h-8 w-auto" />
+          <div className="lg:hidden mb-6">
+            <img src={logoUrl} alt="NEXA" className="h-7 w-auto" />
           </div>
 
           <AnimatePresence mode="wait">
             <motion.form key="login" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}
               onSubmit={(e) => { e.preventDefault(); handleLogin(); }}
             >
-              <h2 className="text-3xl font-bold mb-2" style={{ fontFamily: "'Sora', sans-serif", color: "hsl(215, 35%, 12%)" }}>
+              <h2 className="text-2xl md:text-3xl font-bold mb-2" style={{ fontFamily: "'Sora', sans-serif", color: "hsl(215, 35%, 12%)" }}>
                 Sign In
               </h2>
-              <p className="text-slate-500 mb-8">
+              <p className="text-slate-500 mb-6 md:mb-8 text-sm md:text-base">
                 Enter your credentials to access your secure NEXA wallet.
               </p>
 

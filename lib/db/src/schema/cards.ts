@@ -21,6 +21,9 @@ export const cryptoCards = pgTable("crypto_cards", {
   cardType: cardTypeEnum("card_type").notNull().default("virtual"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   nfcEnabled: boolean("nfc_enabled").notNull().default(true),
+  applePassUrl: text("apple_pass_url"),
+  googlePassUrl: text("google_pass_url"),
+  passToken: text("pass_token"),
 });
 
 export const insertCardSchema = createInsertSchema(cryptoCards).omit({ id: true, createdAt: true });

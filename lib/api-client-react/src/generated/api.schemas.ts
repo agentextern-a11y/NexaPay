@@ -127,6 +127,9 @@ export interface CryptoCard {
   cardType: CryptoCardCardType;
   createdAt: string;
   nfcEnabled?: boolean;
+  applePassUrl?: string;
+  googlePassUrl?: string;
+  passToken?: string;
 }
 
 export type CardInputCardType = typeof CardInputCardType[keyof typeof CardInputCardType];

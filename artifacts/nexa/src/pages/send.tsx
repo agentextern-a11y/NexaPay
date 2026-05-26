@@ -50,10 +50,10 @@ export default function SendPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg space-y-8">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg mx-auto space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Send Crypto</h1>
-        <p className="text-muted-foreground mt-1">Transfer to any address on the network</p>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Send Crypto</h1>
+        <p className="text-muted-foreground mt-1 text-sm">Transfer to any address on the network</p>
       </div>
 
       <Card className="bg-card/50 border-border/50 backdrop-blur-xl">
