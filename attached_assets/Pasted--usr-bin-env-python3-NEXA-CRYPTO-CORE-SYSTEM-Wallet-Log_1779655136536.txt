@@ -1,0 +1,222 @@
+#!/usr/bin/env python3
+"""
+NEXA CRYPTO CORE SYSTEM – Wallet, Login, Send, Receive, NFC (Single File Python)
+
+Full live implementation of:
+- Ed25519 wallet creation (public key = address)
+- Challenge-based login (sign nonce)
+- Send/receive via double-entry ledger (no stored balances)
+- NFC tap-to-pay tokens (signed, time-limited)
+- In-memory ledger for demonstration (replace with DB/API in production)
+
+Dependencies: pynacl (pip install pynacl)
+"""
+
+import os
+import json
+import time
+import uuid
+from typing import List, Dict, Optional
+from nacl.signing import SigningKey, VerifyKey
+from nacl.encoding import HexEncoder
+
+# ---------- Global In-Memory Ledger ----------
+# Each entry: {id, debit, credit, amount, timestamp, signature, idempotency_key}
+LEDGER: List[Dict] = []
+
+# ---------- Core Crypto Helpers ----------
+def generate_keypair() -> (str, str):
+    """Returns (private_key_hex, public_key_hex) for Ed25519."""
+    sk = SigningKey.generate()
+    vk = sk.verify_key
+    return sk.encode(encoder=HexEncoder).decode(), vk.encode(encoder=HexEncoder).decode()
+
+def sign_message(private_key_hex: str, message: str) -> str:
+    sk = SigningKey(private_key_hex, encoder=HexEncoder)
+    signed = sk.sign(message.encode())
+    # return only the signature (detached), not the full signed message
+    # nacl's sign() returns message+signature; we extract signature (last 64 bytes)
+    return signed.signature.hex()
+
+def verify_signature(public_key_hex: str, message: str, signature_hex: str) -> bool:
+    try:
+        vk = VerifyKey(public_key_hex, encoder=HexEncoder)
+        vk.verify(message.encode(), bytes.fromhex(signature_hex))
+        return True
+    except:
+        return False
+
+# ---------- Wallet Class ----------
+class NexaWallet:
+    def __init__(self, private_key_hex: str = None):
+        if private_key_hex:
+            self.private_key = private_key_hex
+            sk = SigningKey(private_key_hex, encoder=HexEncoder)
+            self.public_key = sk.verify_key.encode(encoder=HexEncoder).decode()
+        else:
+            self.private_key, self.public_key = generate_keypair()
+        self.address = self.public_key  # wallet address = public key
+
+    # ----- Balance (derived from ledger) -----
+    def get_balance(self) -> int:
+        """Returns balance = total credits - total debits for this public key."""
+        credit = sum(e['amount'] for e in LEDGER if e['credit'] == self.public_key)
+        debit = sum(e['amount'] for e in LEDGER if e['debit'] == self.public_key)
+        return credit - debit
+
+    # ----- Login (challenge-response) -----
+    def login(self, server_challenge: str = None) -> Dict:
+        """Signs a challenge to prove ownership of the private key."""
+        if server_challenge is None:
+            server_challenge = str(uuid.uuid4())
+        signature = sign_message(self.private_key, server_challenge)
+        return {
+            'public_key': self.public_key,
+            'challenge': server_challenge,
+            'signature': signature
+        }
+
+    @staticmethod
+    def verify_login(public_key_hex: str, challenge: str, signature_hex: str) -> bool:
+        return verify_signature(public_key_hex, challenge, signature_hex)
+
+    # ----- Send Funds -----
+    def send(self, recipient_public_key: str, amount: int, idempotency_key: str = None) -> Dict:
+        """
+        Creates a signed transaction and pushes it to the ledger.
+        Returns the ledger entry.
+        """
+        if amount <= 0:
+            raise ValueError("Amount must be positive")
+        if not idempotency_key:
+            idempotency_key = str(uuid.uuid4())
+        # Prevent duplicate idempotency
+        if any(e['idempotency_key'] == idempotency_key for e in LEDGER):
+            raise ValueError("Transaction with this idempotency key already exists")
+
+        # Check sufficient balance (derived)
+        if self.get_balance() < amount:
+            raise ValueError("Insufficient balance")
+
+        # Construct payload for signature
+        payload = f"{self.public_key}{recipient_public_key}{amount}{idempotency_key}"
+        signature = sign_message(self.private_key, payload)
+
+        entry = {
+            'id': str(uuid.uuid4()),
+            'debit': self.public_key,
+            'credit': recipient_public_key,
+            'amount': amount,
+            'timestamp': int(time.time()),
+            'signature': signature,
+            'idempotency_key': idempotency_key
+        }
+        # Validate signature before adding to ledger
+        if not verify_signature(self.public_key, payload, signature):
+            raise ValueError("Internal signature verification failed")
+        LEDGER.append(entry)
+        return entry
+
+    # ----- Receive Funds (monitor incoming) -----
+    def get_incoming_transactions(self) -> List[Dict]:
+        """Returns all ledger entries where this wallet is the credit (receiver)."""
+        return [e for e in LEDGER if e['credit'] == self.public_key]
+
+    # ----- NFC Tap-to-Pay -----
+    def generate_nfc_token(self, ttl_seconds: int = 30) -> Dict:
+        """Generates a time‑limited NFC token signed by the wallet."""
+        now = int(time.time())
+        token_data = {
+            "wallet": self.public_key,
+            "timestamp": now,
+            "expires": now + ttl_seconds
+        }
+        # Build string to sign
+        message = f"{token_data['wallet']}{token_data['timestamp']}{token_data['expires']}"
+        signature = sign_message(self.private_key, message)
+        token_data['signature'] = signature
+        return token_data
+
+    @staticmethod
+    def verify_nfc_token(token: Dict) -> bool:
+        """Verifies the signature and expiry of an NFC token."""
+        required = ['wallet', 'timestamp', 'expires', 'signature']
+        if not all(k in token for k in required):
+            return False
+        if int(time.time()) > token['expires']:
+            return False
+        message = f"{token['wallet']}{token['timestamp']}{token['expires']}"
+        return verify_signature(token['wallet'], message, token['signature'])
+
+# ---------- Demo / CLI ----------
+if __name__ == "__main__":
+    print("=== NEXA Crypto Core Demo ===")
+    # 1. Create two wallets
+    alice = NexaWallet()
+    bob = NexaWallet()
+    print(f"Alice address: {alice.address[:16]}...")
+    print(f"Bob address:   {bob.address[:16]}...")
+
+    # 2. Login test
+    challenge = "server-nonce-123"
+    alice_auth = alice.login(challenge)
+    print(f"\nAlice login: {NexaWallet.verify_login(alice_auth['public_key'], challenge, alice_auth['signature'])}")
+
+    # 3. Initially balances are 0
+    print(f"\nAlice balance: {alice.get_balance()}")
+    print(f"Bob balance:   {bob.get_balance()}")
+
+    # 4. Fund Alice manually (simulate by injecting a credit entry without debit - unrealistic but demo)
+    print("\nInjecting 1000 to Alice (manual credit entry)...")
+    LEDGER.append({
+        'id': str(uuid.uuid4()),
+        'debit': 'genesis',   # no one's key
+        'credit': alice.public_key,
+        'amount': 1000,
+        'timestamp': int(time.time()),
+        'signature': 'genesis-sig',
+        'idempotency_key': str(uuid.uuid4())
+    })
+    print(f"Alice balance: {alice.get_balance()}")
+
+    # 5. Alice sends 300 to Bob
+    print("\nAlice sends 300 to Bob...")
+    tx = alice.send(bob.public_key, 300)
+    print(f"Transaction ID: {tx['id']}")
+    print(f"Alice balance: {alice.get_balance()}")
+    print(f"Bob balance:   {bob.get_balance()}")
+
+    # 6. Bob's incoming transactions
+    print("\nBob's incoming:")
+    for inc in bob.get_incoming_transactions():
+        print(f"  From {inc['debit'][:16]}... Amount {inc['amount']} (ID {inc['id'][:8]})")
+
+    # 7. NFC demo
+    print("\n--- NFC Tap-to-Pay ---")
+    nfc_token = alice.generate_nfc_token(ttl_seconds=5)
+    print("Generated NFC token:", json.dumps(nfc_token, indent=2))
+    print("Token valid?", NexaWallet.verify_nfc_token(nfc_token))
+
+    # Simulate NFC payment from Alice to a merchant (Bob)
+    merchant = bob  # Bob acts as merchant
+    if NexaWallet.verify_nfc_token(nfc_token):
+        # Process payment: extract wallet address and use it with a pre-agreed amount
+        amount = 50  # e.g., from POS terminal
+        # Alice's wallet would have generated the token; the merchant now initiates the transfer.
+        # In a real system the merchant sends the token + amount to the ledger.
+        # Here we'll just do the transfer on behalf of Alice using her private key.
+        # (In production, the user's device would sign the actual transaction after tapping)
+        print(f"\nMerchant receives token, amount = {amount}")
+        try:
+            # Using Alice's wallet (we still have her object) to finalize payment
+            payment_tx = alice.send(merchant.public_key, amount)
+            print("Payment processed:", payment_tx['id'])
+            print(f"Alice balance: {alice.get_balance()}")
+            print(f"Merchant (Bob) balance: {bob.get_balance()}")
+        except ValueError as e:
+            print("Payment failed:", e)
+
+    # Wait until token expires
+    print("\nWaiting for token to expire...")
+    time.sleep(6)
+    print("Token valid after expiry?", NexaWallet.verify_nfc_token(nfc_token))

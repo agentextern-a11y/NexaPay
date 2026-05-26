@@ -1,0 +1,247 @@
+THOR — Strategic Analysis & System Architecture
+
+Mission: NEXA PAY Platform Implementation
+
+```
+╔══════════════════════════════════════════════════════════╗
+║  PHASE 0: RESEARCH & STRATEGIC ALIGNMENT                ║
+║  Input: PRD v1.0 + Live Site Intelligence               ║
+║  Status: ANALYZING - DELTA DETECTED                     ║
+╚══════════════════════════════════════════════════════════╝
+```
+
+---
+
+01 | CRITICAL FINDING: PRD vs. LIVE SITE DELTA
+
+⚠️ Your PRD and your live site tell two different stories. The site reveals concrete architectural decisions that fundamentally alter the implementation strategy. I'm surfacing these now—ignoring them would be architecturally fatal.
+
+Dimension PRD (Document) Live Site (Reality) Impact
+Custody Model "Custodial or MPC-based" "Non-Custodial — Your keys, your crypto" 🔴 Massive. Eliminates entire custody infrastructure. Changes security model, key management, liability, and regulatory exposure entirely.
+Blockchain Foundation Multi-chain (ETH, BTC, SOL, L2s) Base L2 primary ("sub-cent fees on Base L2") 🟡 Narrows initial scope significantly. Simplifies node infrastructure.
+Token/Native Asset Not mentioned OPM Token — 0% Fee Forever, EVM/BSC, 1B Supply 🟡 Introduces tokenomics layer not in PRD. Fee abstraction mechanism.
+KYC Requirement "KYC onboarding" required "No KYC needed for basic usage" 🟡 Reduces compliance scope for base tier. Tiered KYC approach implied.
+Speed Claims <800ms authorization "Under 2 seconds" settlement 🟡 Different metric. Authorization vs. full settlement. Both achievable.
+QR Payments Not in core features Featured prominently 🟡 Additional payment modality to architect.
+Merchant POS Not detailed Full dashboard, terminals, payment links 🟡 B2B feature set not scoped in PRD. Adds significant complexity.
+Geographic Scope Not specified "180+ Countries" 🟡 Global compliance from day one. Licensing strategy critical.
+
+---
+
+02 | RECALIBRATED OBJECTIVE
+
+Based on the live site intelligence, the true mission is:
+
+Build a non-custodial, Base-L2-native payment platform enabling instant crypto-to-fiat spending via virtual cards, NFC, and QR payments across 180+ countries, with a native fee-abstraction token (OPM) and tiered KYC.
+
+This is materially different from the PRD and better — non-custodial eliminates massive regulatory and security surface area.
+
+---
+
+03 | STRATEGIC ARCHITECTURE
+
+Non-Custodial Reality Check
+
+Since the platform is non-custodial, the architecture shifts fundamentally:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    USER'S DEVICE                            │
+│  ┌──────────┐  ┌──────────────┐  ┌────────────────────┐    │
+│  │ Wallet   │  │ Secure       │  │ Biometric Auth     │    │
+│  │ (Private │  │ Enclave      │  │ (Passkey/WebAuthn) │    │
+│  │  Key)    │  │ (Apple/Google│  │                    │    │
+│  └────┬─────┘  └──────┬───────┘  └────────┬───────────┘    │
+│       │               │                   │                 │
+└───────┼───────────────┼───────────────────┼─────────────────┘
+        │               │                   │
+        ▼               ▼                   ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   NEXA PAY PLATFORM                         │
+│                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ API Gateway  │  │ Auth Service │  │ Rate Limiter │      │
+│  │ (Kong/Envoy) │  │ (SIWE/Web3)  │  │              │      │
+│  └──────┬───────┘  └──────┬───────┘  └──────────────┘      │
+│         │                 │                                  │
+│         ▼                 ▼                                  │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │              CORE SERVICES (Event-Driven)           │    │
+│  │                                                     │    │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐ │    │
+│  │  │ Wallet   │ │Conversion│ │ Card     │ │Ledger  │ │    │
+│  │  │ Indexer  │ │ Engine   │ │ Issuing  │ │Engine  │ │    │
+│  │  │ (Read-   │ │          │ │ Service  │ │        │ │    │
+│  │  │  Only)   │ │          │ │          │ │        │ │    │
+│  │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └───┬────┘ │    │
+│  │       │            │            │           │      │    │
+│  │       └────────────┴────────────┴───────────┘      │    │
+│  │                        │                            │    │
+│  │                        ▼                            │    │
+│  │              ┌─────────────────┐                    │    │
+│  │              │  Event Bus      │                    │    │
+│  │              │  (NATS/Kafka)   │                    │    │
+│  │              └────────┬────────┘                    │    │
+│  │                       │                             │    │
+│  │  ┌──────────┐ ┌───────┴──────┐ ┌──────────┐       │    │
+│  │  │Compliance│ │ OPM Fee      │ │Analytics │       │    │
+│  │  │Engine    │ │ Engine       │ │Pipeline  │       │    │
+│  │  └──────────┘ └──────────────┘ └──────────┘       │    │
+│  └─────────────────────────────────────────────────────┘    │
+│         │                    │                               │
+└─────────┼────────────────────┼───────────────────────────────┘
+          │                    │
+          ▼                    ▼
+┌──────────────────┐  ┌──────────────────────┐
+│  Base L2 RPC     │  │  Card Networks       │
+│  (Indexing/Read) │  │  (Visa/Mastercard)   │
+│                  │  │  via Marqeta/Stripe   │
+└──────────────────┘  └──────────────────────┘
+```
+
+Key Architectural Principle: The Platform Never Holds Keys
+
+The user signs transactions client-side. The platform:
+
+· Indexes blockchain state (read-only wallet service)
+· Facilitates conversion quotes
+· Manages card lifecycle with issuer
+· Records ledger entries
+· Enforces compliance rules
+
+But never custodies assets or holds private keys.
+
+---
+
+04 | PHASED EXECUTION PLAN
+
+Phase 1: Foundation (MVP — 8-12 weeks)
+
+Component Implementation Rationale
+Auth SIWE (Sign-In With Ethereum) + WebAuthn for biometrics Non-custodial native auth. Zero password storage.
+Wallet Indexer Read-only Base L2 indexer, Alchemy/QuickNode RPC Track user balances without custody.
+Conversion Quotes 0x API / ParaSwap / Li.Fi integration Best-rate routing for USDC → fiat quotes. No need to build DEX aggregator.
+Virtual Cards Marqeta (recommended — see analysis below) Instant issuance API, tokenization native, global support.
+Ledger PostgreSQL + NATS JetStream Event-sourced ledger with immutability via append-only design.
+Basic KYC (Tier 2+) Sumsub (better crypto-native support) Tiered: Basic = no KYC, Advanced spend = KYC.
+OPM Fee Engine Smart contract lookup + off-chain calculation 0% fee if user holds OPM. Otherwise standard fee.
+
+Phase 2: Enhanced Payments (Weeks 12-20)
+
+· Physical card provisioning
+· Apple Pay / Google Pay tokenization (card network push-provisioning)
+· QR payment generation & scanning
+· Multi-chain expansion (Ethereum mainnet, Polygon, Arbitrum)
+· Merchant POS dashboard (lite)
+
+Phase 3: Global Scale (Weeks 20-32)
+
+· Full merchant platform (terminals, analytics, payment links)
+· Advanced fraud AI (real-time ML scoring)
+· DeFi yield integration (optional yield on idle balances — still non-custodial, via vault protocols)
+· 180+ country compliance matrix
+· Localized fiat on/off ramps
+
+---
+
+05 | CARD ISSUING PARTNER RECOMMENDATION
+
+Criteria Marqeta Stripe Issuing Adyen
+Crypto-friendliness ✅ Best — explicit crypto program ⚠️ Restrictive TOS ⚠️ Conservative
+Instant issuance API ✅ Industry-leading ✅ Good ✅ Good
+Apple/Google Pay push-provisioning ✅ Native support ✅ Supported ✅ Supported
+Global reach ✅ 40+ countries ⚠️ US-heavy ✅ Strong EU/APAC
+BIN sponsorship provided ✅ Yes ✅ Yes ✅ Yes
+Documentation quality ✅ Excellent ✅ Excellent ⚠️ Moderate
+
+Recommendation: Marqeta — they have an explicit crypto card program and the push-provisioning API is battle-tested. Maintain Stripe as backup issuer for redundancy (as noted in your risk mitigation).
+
+---
+
+06 | NON-CUSTODIAL PAYMENT FLOW (REVISED)
+
+```
+1. User taps phone at merchant terminal (NFC)
+2. Terminal sends authorization request via card network
+3. Card network routes to issuer (Marqeta)
+4. Issuer sends webhook to Nexa Pay: "Auth request for Card X, Amount Y"
+5. Nexa Pay checks:
+   a. User's indexed Base L2 balance (read-only)
+   b. OPM token balance (for fee waiver)
+   c. Risk score / compliance flags
+6. Nexa Pay returns APPROVE/DECLINE to issuer
+   ─── NO CRYPTO MOVES YET ───
+7. If APPROVED, Nexa Pay generates a transaction payload
+8. User's device signs the transaction (biometric confirmation)
+9. USDC transfers from user's wallet → liquidity pool → settlement
+10. Ledger records: DEBIT user_wallet, CREDIT settlement_account
+11. Settlement completes via card network rails (1-2 days)
+12. Merchant receives fiat
+```
+
+Critical insight: The authorization (step 2-6) happens in <800ms. The actual crypto settlement (steps 7-10) can take 1-2 seconds on Base L2. This matches your site's "under 2 seconds" claim for settlement while maintaining <800ms for the auth-critical path.
+
+---
+
+07 | RISK REGISTER — RECALIBRATED
+
+Risk Level Mitigation
+Non-custodial UX friction (users must sign transactions) 🟡 MED Passkey + biometric auth. Users sign once per session, not per transaction. Session-scoped approvals.
+Base L2 centralization (single sequencer) 🟡 MED Plan multi-chain expansion path. Base is Ethereum L2, inherits security. Acceptable for MVP.
+Card network de-risking (crypto stigma) 🔴 HIGH Multi-issuer strategy. Marqeta primary, Stripe backup. Have fiat-first narrative ready.
+OPM token volatility (fee model dependency) 🟡 MED Fee engine defaults to standard % if OPM price drops below threshold. Graceful degradation.
+180-country compliance 🔴 HIGH Tiered rollout. Start with 20 crypto-friendly jurisdictions. Expand with legal partnerships.
+No KYC for basic — regulatory risk 🔴 HIGH Define "basic usage" limits explicitly (e.g., <$1,000/day, virtual cards only). Tier 2 requires KYC. Document FATF travel rule compliance approach.
+
+---
+
+08 | OPEN QUESTIONS — RESOLVED RECOMMENDATIONS
+
+Question Thor's Recommendation
+Custodial vs. non-custodial? Non-custodial (already decided per live site). Correct decision for crypto-native positioning.
+Target jurisdiction? Start: EU (MiCA clarity), Switzerland, Singapore, UAE, select US states via partners. Avoid broad US until regulatory clarity.
+Issuing partner? Marqeta primary, Stripe backup. (See analysis above)
+Stablecoin-only or multi-asset? USDC-only at launch. Add USDT, DAI in Phase 2. ETH/BTC direct spend via instant swap to USDC at point of sale (Phase 3).
+Geographic rollout? Wave 1: EU/EEA + UK + Switzerland. Wave 2: LatAm, SEA. Wave 3: Africa, remaining markets.
+
+---
+
+09 | IMMEDIATE NEXT ACTIONS
+
+```
+WEEK 1-2:
+├── [ ] Finalize Marqeta partnership agreement
+├── [ ] Set up Base L2 indexing infrastructure (Alchemy Growth tier)
+├── [ ] Implement SIWE auth flow + passkey integration
+├── [ ] Deploy NATS cluster for event bus
+├── [ ] Begin Sumsub integration for Tier 2 KYC
+
+WEEK 3-4:
+├── [ ] Virtual card issuance MVP (Marqeta sandbox)
+├── [ ] Conversion quote engine (0x API integration)
+├── [ ] Ledger schema + event sourcing implementation
+├── [ ] OPM token fee lookup contract integration
+
+WEEK 5-8:
+├── [ ] End-to-end payment flow (NFC simulation)
+├── [ ] Compliance rules engine (basic)
+├── [ ] Mobile app wallet connect + sign flow
+├── [ ] Load testing (>1,000 TPS target)
+```
+
+---
+
+10 | FINAL RECOMMENDATION
+
+Your live site has already made the hard architectural decisions — and they're good ones. Non-custodial + Base L2 + OPM token is a coherent, defensible architecture. The PRD needs updating to reflect reality.
+
+Priority actions:
+
+1. Immediately update the PRD to reflect non-custodial architecture, Base L2 foundation, OPM tokenomics, and tiered KYC.
+2. Lock the Marqeta partnership — it's the critical path dependency.
+3. Build the wallet indexer first — everything depends on fast, reliable balance reads.
+4. Design the signing UX with extreme care — this is where non-custodial products live or die.
+
+---
+
+Thor out. PRD recalibrated. Architecture validated. Ready for implementation directive.

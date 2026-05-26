@@ -1,4 +1,4 @@
-modules = ["nodejs-24", "postgresql-16"]
+modules = ["nodejs-24", "postgresql-16", "python-3.11"]
 
 [deployment]
 router = "application"
@@ -37,3 +37,9 @@ externalPort = 3001
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+WEB3AUTH_CLIENT_ID = "BL6I78SvFh3_WtAfsjZrGDgEE5cyGHyt4Ile68zQWnRmvx9-SERI2RyKGNVSekRnrs_6t2r5kvqhJZPDng1w5wU"
+WEB3AUTH_JWKS_URL = "https://api-auth.web3auth.io/.well-known/jwks.json"

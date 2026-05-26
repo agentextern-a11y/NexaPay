@@ -1,0 +1,3 @@
+- [Security marketing honesty](security-marketing-honesty.md) — Never claim AES-256 or Ed25519 unless actually using them in the relevant code path. Use SHA-256/localStorage instead when that is the real implementation. Always review for marketing copy mismatch with actual code.
+- [pnpm vulnerability overrides](pnpm-vulnerability-overrides.md) — Use `pnpm-workspace.yaml` `overrides` key to force patched versions of transitive dependencies. Re-run `pnpm install` to apply; verify with `pnpm audit`.
+- [API client lib rebuilds](lib-rebuild-workflow.md) — When editing `lib/` packages, always run `pnpm run typecheck:libs` or `tsc --build` to regenerate `dist/` declarations. Without this, consuming packages may see stale exports.

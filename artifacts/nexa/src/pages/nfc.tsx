@@ -41,6 +41,7 @@ export default function Nfc() {
       }, 1000);
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [step, session]);
 
   const handleInitiate = () => {

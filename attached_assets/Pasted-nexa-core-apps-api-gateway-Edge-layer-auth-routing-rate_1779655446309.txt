@@ -1,0 +1,164 @@
+nexa-core/
+│
+├── apps/
+│   ├── api-gateway/                 # Edge layer (auth, routing, rate limit)
+│   │   ├── src/
+│   │   │   ├── index.ts
+│   │   │   ├── middleware/
+│   │   │   │   ├── auth.middleware.ts
+│   │   │   │   ├── rateLimit.middleware.ts
+│   │   │   │   ├── signature.middleware.ts
+│   │   │   │   └── error.middleware.ts
+│   │   │   ├── routes/
+│   │   │   │   ├── wallet.routes.ts
+│   │   │   │   ├── transaction.routes.ts
+│   │   │   │   ├── nfc.routes.ts
+│   │   │   │   └── balance.routes.ts
+│   │   │   └── config/
+│   │   │       └── env.ts
+│   │   └── package.json
+│   │
+│   ├── wallet-service/              # Wallet creation + key handling
+│   │   ├── src/
+│   │   │   ├── wallet.service.ts
+│   │   │   ├── keygen.ts
+│   │   │   ├── signer.ts
+│   │   │   ├── controller.ts
+│   │   │   └── routes.ts
+│   │   └── package.json
+│   │
+│   ├── transaction-engine/          # TX creation + validation
+│   │   ├── src/
+│   │   │   ├── builder.ts
+│   │   │   ├── validator.ts
+│   │   │   ├── processor.ts
+│   │   │   ├── signer.ts
+│   │   │   └── controller.ts
+│   │   └── package.json
+│   │
+│   ├── ledger-service/              # SOURCE OF TRUTH (POSTGRES)
+│   │   ├── src/
+│   │   │   ├── ledger.service.ts
+│   │   │   ├── repository.ts
+│   │   │   ├── controller.ts
+│   │   │   ├── models.ts
+│   │   │   └── balance.ts
+│   │   └── package.json
+│   │
+│   ├── nfc-service/                 # Tap-to-pay system
+│   │   ├── src/
+│   │   │   ├── token.generator.ts
+│   │   │   ├── token.validator.ts
+│   │   │   ├── controller.ts
+│   │   │   └── routes.ts
+│   │   └── package.json
+│   │
+│   ├── fraud-service/               # Risk engine
+│   │   ├── src/
+│   │   │   ├── rules.ts
+│   │   │   ├── velocity.ts
+│   │   │   ├── monitor.ts
+│   │   │   └── index.ts
+│   │   └── package.json
+│   │
+│   └── event-worker/                # Kafka consumers
+│       ├── src/
+│       │   ├── consumer.ts
+│       │   ├── handlers/
+│       │   │   ├── tx.handler.ts
+│       │   │   ├── fraud.handler.ts
+│       │   │   └── nfc.handler.ts
+│       │   └── index.ts
+│       └── package.json
+│
+├── packages/
+│   ├── crypto-core/                 # Ed25519 + signing utilities
+│   │   ├── src/
+│   │   │   ├── ed25519.ts
+│   │   │   ├── sign.ts
+│   │   │   ├── verify.ts
+│   │   │   └── index.ts
+│   │   └── package.json
+│   │
+│   ├── ledger-core/                # Double-entry logic
+│   │   ├── src/
+│   │   │   ├── entry.ts
+│   │   │   ├── validator.ts
+│   │   │   ├── calculator.ts
+│   │   │   └── types.ts
+│   │   └── package.json
+│   │
+│   ├── event-bus/                 # Kafka abstraction
+│   │   ├── src/
+│   │   │   ├── kafka.ts
+│   │   │   ├── publisher.ts
+│   │   │   ├── consumer.ts
+│   │   │   └── topics.ts
+│   │   └── package.json
+│   │
+│   ├── security/                  # nonce, replay protection
+│   │   ├── src/
+│   │   │   ├── nonce.ts
+│   │   │   ├── hmac.ts
+│   │   │   ├── rateLimiter.ts
+│   │   │   └── index.ts
+│   │   └── package.json
+│   │
+│   └── shared-types/
+│       ├── src/
+│       │   ├── transaction.ts
+│       │   ├── wallet.ts
+│       │   ├── events.ts
+│       │   └── index.ts
+│       └── package.json
+│
+├── infra/
+│   ├── docker/
+│   │   ├── docker-compose.yml
+│   │   ├── Dockerfile.api
+│   │   ├── Dockerfile.service
+│   │   └── Dockerfile.worker
+│   │
+│   ├── kubernetes/
+│   │   ├── api-gateway.yaml
+│   │   ├── ledger.yaml
+│   │   ├── wallet.yaml
+│   │   ├── transaction.yaml
+│   │   └── nfc.yaml
+│   │
+│   ├── postgres/
+│   │   ├── init.sql
+│   │   ├── migrations/
+│   │   │   ├── 001_ledger.sql
+│   │   │   ├── 002_wallets.sql
+│   │   │   └── 003_transactions.sql
+│   │
+│   ├── redis/
+│   │   └── redis.conf
+│   │
+│   ├── kafka/
+│   │   └── topics.yaml
+│   │
+│   └── monitoring/
+│       ├── prometheus.yml
+│       ├── grafana-dashboards/
+│       └── alerts.yml
+│
+├── docs/
+│   ├── architecture.md
+│   ├── ledger-design.md
+│   ├── nft-protocol.md
+│   ├── nfc-protocol.md
+│   └── security-model.md
+│
+├── scripts/
+│   ├── setup.sh
+│   ├── seed.ts
+│   ├── dev-start.sh
+│   └── deploy.sh
+│
+├── .env.example
+├── docker-compose.yml
+├── package.json
+├── tsconfig.json
+└── README.md

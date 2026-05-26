@@ -5,10 +5,10 @@ import { setWalletIdGetter } from "@workspace/api-client-react";
 
 setWalletIdGetter(() => {
   try {
-    const s = localStorage.getItem("nexa_session");
-    if (!s) return null;
-    const parsed = JSON.parse(s);
-    return parsed.walletId ?? null;
+    const id = localStorage.getItem("nexa_active_wallet_id");
+    if (!id) return null;
+    const n = parseInt(id, 10);
+    return isNaN(n) || n <= 0 ? null : n;
   } catch {
     return null;
   }
