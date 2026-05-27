@@ -1,6 +1,6 @@
 workflows:
   ios-nexapay-prod:
-    name: NexaPay iOS Production
+    name: NexaPay iOS Production (Stable)
 
     max_build_duration: 90
 
@@ -15,39 +15,74 @@ workflows:
 
     cache:
       cache_paths:
-        - ~/.pub-cache
+        - node_modules
         - ios/Pods
-        - ~/Library/Caches/CocoaPods
+        - ~/.pub-cache
 
     scripts:
 
-      - name: Install dependencies
-        script: npm ci
+      # -------------------------
+      # 1. VALIDATION LAYER
+      # -------------------------
+      - name: Validate environment
+        script: |
+          set -e
+          node -v
+          npm -v
 
+      # -------------------------
+      # 2. DEPENDENCIES (FIXED NPM FAIL SAFE)
+      # -------------------------
+      - name: Install dependencies
+        script: |
+          set -e
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      # -------------------------
+      # 3. iOS POD INSTALL
+      # -------------------------
       - name: Install CocoaPods
         script: |
+          set -e
           cd ios
           pod install --repo-update
 
-      - name: Verify workspace
+      # -------------------------
+      # 4. VERIFY STRUCTURE
+      # -------------------------
+      - name: Verify iOS workspace
         script: |
-          test -d ios && ls ios/*.xcworkspace
+          set -e
+          test -f ios/Runner.xcworkspace
 
+      # -------------------------
+      # 5. CLEAN BUILD
+      # -------------------------
       - name: Clean build
         script: |
           xcodebuild clean \
-            -workspace ios/*.xcworkspace \
+            -workspace ios/Runner.xcworkspace \
             -scheme Runner
 
-      - name: Build archive (automatic signing)
+      # -------------------------
+      # 6. ARCHIVE
+      # -------------------------
+      - name: Build archive
         script: |
           xcodebuild \
-            -workspace ios/*.xcworkspace \
+            -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -archivePath build/app.xcarchive \
             archive
 
+      # -------------------------
+      # 7. EXPORT IPA
+      # -------------------------
       - name: Export IPA
         script: |
           xcodebuild -exportArchive \
