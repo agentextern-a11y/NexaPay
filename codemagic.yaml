@@ -1,6 +1,6 @@
 workflows:
   ios-nexapay-prod:
-    name: NexaPay iOS Production (Stable)
+    name: NexaPay iOS Production (PNPM Stable)
 
     max_build_duration: 90
 
@@ -10,53 +10,37 @@ workflows:
     environment:
       xcode: latest
 
-      vars:
-        FLUTTER_BUILD_MODE: release
-
-    cache:
-      cache_paths:
-        - node_modules
-        - ios/Pods
-        - ~/.pub-cache
-
     scripts:
 
       # -------------------------
-      # 1. VALIDATION LAYER
+      # 1. ENABLE COREPACK + PNPM
       # -------------------------
-      - name: Validate environment
+      - name: Setup pnpm
         script: |
-          set -e
-          node -v
-          npm -v
+          corepack enable
+          corepack prepare pnpm@latest --activate
+          pnpm -v
 
       # -------------------------
-      # 2. DEPENDENCIES (FIXED NPM FAIL SAFE)
+      # 2. INSTALL DEPENDENCIES (FIXED)
       # -------------------------
-      - name: Install dependencies
+      - name: Install dependencies (pnpm)
         script: |
-          set -e
-          if [ -f package-lock.json ]; then
-            npm ci --no-audit --no-fund
-          else
-            npm install --no-audit --no-fund
-          fi
+          pnpm install --frozen-lockfile=false
 
       # -------------------------
-      # 3. iOS POD INSTALL
+      # 3. IOS PODS
       # -------------------------
       - name: Install CocoaPods
         script: |
-          set -e
           cd ios
           pod install --repo-update
 
       # -------------------------
-      # 4. VERIFY STRUCTURE
+      # 4. VERIFY IOS STRUCTURE
       # -------------------------
-      - name: Verify iOS workspace
+      - name: Verify workspace
         script: |
-          set -e
           test -f ios/Runner.xcworkspace
 
       # -------------------------
@@ -79,16 +63,6 @@ workflows:
             -configuration Release \
             -archivePath build/app.xcarchive \
             archive
-
-      # -------------------------
-      # 7. EXPORT IPA
-      # -------------------------
-      - name: Export IPA
-        script: |
-          xcodebuild -exportArchive \
-            -archivePath build/app.xcarchive \
-            -exportOptionsPlist ios/exportOptions.plist \
-            -exportPath build/
 
     artifacts:
       - build/*.ipa
