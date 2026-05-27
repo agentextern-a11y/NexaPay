@@ -1,6 +1,6 @@
 workflows:
   ios-nexapay-prod:
-    name: NexaPay iOS Production (Locked Stable)
+    name: NexaPay iOS Production (Stable Yarn Fix)
 
     max_build_duration: 90
 
@@ -11,26 +11,21 @@ workflows:
       xcode: latest
 
       vars:
-        FLUTTER_BUILD_MODE: release
-
-    cache:
-      cache_paths:
-        - ~/.cache/yarn
-        - ios/Pods
-        - ~/Library/Caches/CocoaPods
+        YARN_ENABLE_IMMUTABLE_INSTALLS: "true"
 
     scripts:
 
       # -------------------------
-      # 1. FORCE CLEAN PACKAGE STATE
+      # 1. FORCE CORRECT ROOT DIRECTORY
       # -------------------------
-      - name: Clean workspace
+      - name: Fix workspace path
         script: |
-          rm -rf node_modules
-          rm -f package-lock.json pnpm-lock.yaml
+          cd $CM_BUILD_DIR
+          pwd
+          ls
 
       # -------------------------
-      # 2. ENABLE YARN (COREPACK)
+      # 2. COREPACK + YARN BERRY FIX
       # -------------------------
       - name: Setup Yarn
         script: |
@@ -39,11 +34,16 @@ workflows:
           yarn -v
 
       # -------------------------
-      # 3. INSTALL DEPENDENCIES (YARN ONLY)
+      # 3. CLEAN INSTALL (FIXED BERRY MODE)
       # -------------------------
       - name: Install dependencies
         script: |
-          yarn install --frozen-lockfile
+          cd $CM_BUILD_DIR
+
+          # critical: avoid root confusion
+          export YARN_IGNORE_PATH=1
+
+          yarn install --immutable
 
       # -------------------------
       # 4. IOS PODS
@@ -54,14 +54,16 @@ workflows:
           pod install --repo-update
 
       # -------------------------
-      # 5. VERIFY IOS STRUCTURE
+      # 5. VERIFY STRUCTURE
       # -------------------------
-      - name: Verify workspace
+      - name: Verify project structure
         script: |
-          test -f ios/Runner.xcworkspace
+          cd $CM_BUILD_DIR
+          test -f package.json
+          test -f yarn.lock
 
       # -------------------------
-      # 6. CLEAN XCODE BUILD
+      # 6. CLEAN BUILD
       # -------------------------
       - name: Clean build
         script: |
@@ -70,7 +72,7 @@ workflows:
             -scheme Runner
 
       # -------------------------
-      # 7. ARCHIVE BUILD (AUTOMATIC SIGNING)
+      # 7. ARCHIVE
       # -------------------------
       - name: Build archive
         script: |
