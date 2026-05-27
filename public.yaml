@@ -1,0 +1,26 @@
+- name: Bootstrap project root (GLOBAL LOCK)
+  script: |
+    set -e
+
+    echo "Raw CM_BUILD_DIR:"
+    echo "$CM_BUILD_DIR"
+
+    cd "$CM_BUILD_DIR"
+
+    # detect actual project root (safe for monorepos too)
+    if [ -f package.json ]; then
+      PROJECT_ROOT="$CM_BUILD_DIR"
+    else
+      PROJECT_ROOT=$(find "$CM_BUILD_DIR" -maxdepth 4 -name package.json -print -quit | xargs dirname)
+    fi
+
+    if [ -z "$PROJECT_ROOT" ]; then
+      echo "ERROR: project root not found"
+      exit 1
+    fi
+
+    echo "Resolved PROJECT_ROOT:"
+    echo "$PROJECT_ROOT"
+
+    # persist globally for ALL future steps
+    echo "PROJECT_ROOT=$PROJECT_ROOT" >> $CM_ENV
