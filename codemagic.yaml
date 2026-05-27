@@ -1,6 +1,8 @@
 workflows:
   ios-nexapay-prod:
-    name: NexaPay iOS Production
+    name: NexaPay iOS Production (Clean)
+
+    max_build_duration: 90
 
     integrations:
       app_store_connect: tilgo_asc
@@ -8,18 +10,37 @@ workflows:
     environment:
       xcode: 15.4
 
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.nexa-pay.app
+      # IMPORTANT: remove manual signing completely
+      vars:
+        FLUTTER_BUILD_MODE: release
+
+    cache:
+      cache_paths:
+        - ~/.pub-cache
+        - ios/Pods
+        - ~/Library/Caches/CocoaPods
 
     scripts:
+
       - name: Install dependencies
         script: npm ci
 
-      - name: Pods
-        script: cd ios && pod install --repo-update
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install --repo-update
 
-      - name: Build
+      - name: Verify workspace
+        script: |
+          ls ios/*.xcworkspace
+
+      - name: Clean build
+        script: |
+          xcodebuild clean \
+            -workspace ios/*.xcworkspace \
+            -scheme Runner
+
+      - name: Build archive (automatic signing)
         script: |
           xcodebuild \
             -workspace ios/*.xcworkspace \
@@ -27,6 +48,16 @@ workflows:
             -configuration Release \
             -archivePath build/app.xcarchive \
             archive
+
+      - name: Export IPA
+        script: |
+          xcodebuild -exportArchive \
+            -archivePath build/app.xcarchive \
+            -exportOptionsPlist ios/exportOptions.plist \
+            -exportPath build/
+
+    artifacts:
+      - build/*.ipa
 
     publishing:
       app_store_connect:
