@@ -1,6 +1,6 @@
 workflows:
   ios-nexapay-prod:
-    name: NexaPay iOS Production (PNPM Stable)
+    name: NexaPay iOS Production (Locked Stable)
 
     max_build_duration: 90
 
@@ -10,26 +10,43 @@ workflows:
     environment:
       xcode: latest
 
+      vars:
+        FLUTTER_BUILD_MODE: release
+
+    cache:
+      cache_paths:
+        - ~/.cache/yarn
+        - ios/Pods
+        - ~/Library/Caches/CocoaPods
+
     scripts:
 
       # -------------------------
-      # 1. ENABLE COREPACK + PNPM
+      # 1. FORCE CLEAN PACKAGE STATE
       # -------------------------
-      - name: Setup pnpm
+      - name: Clean workspace
+        script: |
+          rm -rf node_modules
+          rm -f package-lock.json pnpm-lock.yaml
+
+      # -------------------------
+      # 2. ENABLE YARN (COREPACK)
+      # -------------------------
+      - name: Setup Yarn
         script: |
           corepack enable
-          corepack prepare pnpm@latest --activate
-          pnpm -v
+          corepack prepare yarn@stable --activate
+          yarn -v
 
       # -------------------------
-      # 2. INSTALL DEPENDENCIES (FIXED)
+      # 3. INSTALL DEPENDENCIES (YARN ONLY)
       # -------------------------
-      - name: Install dependencies (pnpm)
+      - name: Install dependencies
         script: |
-          pnpm install --frozen-lockfile=false
+          yarn install --frozen-lockfile
 
       # -------------------------
-      # 3. IOS PODS
+      # 4. IOS PODS
       # -------------------------
       - name: Install CocoaPods
         script: |
@@ -37,14 +54,14 @@ workflows:
           pod install --repo-update
 
       # -------------------------
-      # 4. VERIFY IOS STRUCTURE
+      # 5. VERIFY IOS STRUCTURE
       # -------------------------
       - name: Verify workspace
         script: |
           test -f ios/Runner.xcworkspace
 
       # -------------------------
-      # 5. CLEAN BUILD
+      # 6. CLEAN XCODE BUILD
       # -------------------------
       - name: Clean build
         script: |
@@ -53,7 +70,7 @@ workflows:
             -scheme Runner
 
       # -------------------------
-      # 6. ARCHIVE
+      # 7. ARCHIVE BUILD (AUTOMATIC SIGNING)
       # -------------------------
       - name: Build archive
         script: |
@@ -63,6 +80,16 @@ workflows:
             -configuration Release \
             -archivePath build/app.xcarchive \
             archive
+
+      # -------------------------
+      # 8. EXPORT IPA
+      # -------------------------
+      - name: Export IPA
+        script: |
+          xcodebuild -exportArchive \
+            -archivePath build/app.xcarchive \
+            -exportOptionsPlist ios/exportOptions.plist \
+            -exportPath build/
 
     artifacts:
       - build/*.ipa
