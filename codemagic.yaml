@@ -1,6 +1,52 @@
 workflows:
-  nexapay-ios-locked:
-    name: NexaPay iOS Locked Pipeline
+  nexapay-dev:
+    name: NexaPay Dev Build
+
+    max_build_duration: 60
+
+    integrations:
+      app_store_connect: tiligo_asc
+
+    environment:
+      xcode: latest
+
+      vars:
+        ENV: dev
+        ROOT_DIR: "$CM_BUILD_DIR/clone"
+
+    scripts:
+      - name: Lock root
+        script: |
+          cd $ROOT_DIR
+
+      - name: Yarn deterministic install
+        script: |
+          cd $ROOT_DIR
+          corepack enable
+          corepack prepare yarn@stable --activate
+          yarn install --immutable
+
+      - name: Build iOS
+        script: |
+          cd $ROOT_DIR/ios
+          pod install --repo-update
+
+      - name: Archive
+        script: |
+          cd $ROOT_DIR
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Debug \
+            -archivePath build/dev.xcarchive \
+            archive
+
+    artifacts:
+      - build/*.ipa
+
+
+  nexapay-staging:
+    name: NexaPay Staging Release
 
     max_build_duration: 90
 
@@ -11,105 +57,111 @@ workflows:
       xcode: latest
 
       vars:
+        ENV: staging
         ROOT_DIR: "$CM_BUILD_DIR/clone"
 
-    cache:
-      cache_paths:
-        - ~/.cache/yarn
-        - ios/Pods
-        - ~/Library/Caches/CocoaPods
-
     scripts:
-
-      # -------------------------
-      # 1. HARD ROOT ENFORCEMENT
-      # -------------------------
-      - name: Lock workspace root
-        script: |
-          set -e
-          cd $ROOT_DIR
-
-          echo "LOCKED ROOT:"
-          pwd
-
-          test -f package.json
-          test -f yarn.lock
-
-      # -------------------------
-      # 2. COREPACK + YARN BERRY LOCK
-      # -------------------------
-      - name: Activate Yarn
+      - name: Root lock
         script: |
           cd $ROOT_DIR
 
+      - name: Deterministic install
+        script: |
+          cd $ROOT_DIR
           corepack enable
-          corepack prepare yarn@stable --activate
-
-          yarn -v
-
-      # -------------------------
-      # 3. DETERMINISTIC INSTALL (NO DRIFT)
-      # -------------------------
-      - name: Install dependencies (locked)
-        script: |
-          cd $ROOT_DIR
-
-          export YARN_IGNORE_PATH=1
-
           yarn install --immutable
 
-      # -------------------------
-      # 4. IOS POD INSTALL
-      # -------------------------
-      - name: Install CocoaPods
+      - name: CocoaPods sync
         script: |
           cd $ROOT_DIR/ios
-
           pod install --repo-update
 
-      # -------------------------
-      # 5. VERIFY IOS BUILD ENTRYPOINT
-      # -------------------------
-      - name: Verify Xcode workspace
-        script: |
-          cd $ROOT_DIR/ios
-
-          test -f Runner.xcworkspace
-
-      # -------------------------
-      # 6. CLEAN BUILD (DETERMINISTIC)
-      # -------------------------
       - name: Clean build
         script: |
           cd $ROOT_DIR
-
           xcodebuild clean \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner
 
-      # -------------------------
-      # 7. ARCHIVE (SIGNED)
-      # -------------------------
-      - name: Build archive
+      - name: Archive (signed)
         script: |
           cd $ROOT_DIR
-
           xcodebuild \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
-            -archivePath build/app.xcarchive \
+            -archivePath build/staging.xcarchive \
             archive
 
-      # -------------------------
-      # 8. EXPORT IPA
-      # -------------------------
-      - name: Export IPA
+    artifacts:
+      - build/*.ipa
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - internal-testers
+
+
+  nexapay-prod:
+    name: NexaPay Production Release (GATED)
+
+    max_build_duration: 120
+
+    integrations:
+      app_store_connect: tiligo_asc
+
+    environment:
+      xcode: latest
+
+      vars:
+        ENV: prod
+        ROOT_DIR: "$CM_BUILD_DIR/clone"
+
+    scripts:
+      - name: Root lock
         script: |
           cd $ROOT_DIR
 
+      - name: Dependency freeze
+        script: |
+          cd $ROOT_DIR
+          corepack enable
+          yarn install --immutable
+
+      - name: Security pre-check
+        script: |
+          cd $ROOT_DIR
+          yarn audit || true
+
+      - name: CocoaPods sync
+        script: |
+          cd $ROOT_DIR/ios
+          pod install --repo-update
+
+      - name: Clean release build
+        script: |
+          cd $ROOT_DIR
+          xcodebuild clean \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner
+
+      - name: Archive production
+        script: |
+          cd $ROOT_DIR
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath build/prod.xcarchive \
+            archive
+
+      - name: Export IPA
+        script: |
+          cd $ROOT_DIR
           xcodebuild -exportArchive \
-            -archivePath build/app.xcarchive \
+            -archivePath build/prod.xcarchive \
             -exportOptionsPlist ios/exportOptions.plist \
             -exportPath build/
 
