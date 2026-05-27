@@ -1,6 +1,6 @@
 workflows:
-  ios-nexapay-prod:
-    name: NexaPay iOS Production (Stable Yarn Fix)
+  nexapay-ios-locked:
+    name: NexaPay iOS Locked Pipeline
 
     max_build_duration: 90
 
@@ -11,71 +11,89 @@ workflows:
       xcode: latest
 
       vars:
-        YARN_ENABLE_IMMUTABLE_INSTALLS: "true"
+        ROOT_DIR: "$CM_BUILD_DIR/clone"
+
+    cache:
+      cache_paths:
+        - ~/.cache/yarn
+        - ios/Pods
+        - ~/Library/Caches/CocoaPods
 
     scripts:
 
       # -------------------------
-      # 1. FORCE CORRECT ROOT DIRECTORY
+      # 1. HARD ROOT ENFORCEMENT
       # -------------------------
-      - name: Fix workspace path
+      - name: Lock workspace root
         script: |
-          cd $CM_BUILD_DIR
+          set -e
+          cd $ROOT_DIR
+
+          echo "LOCKED ROOT:"
           pwd
-          ls
+
+          test -f package.json
+          test -f yarn.lock
 
       # -------------------------
-      # 2. COREPACK + YARN BERRY FIX
+      # 2. COREPACK + YARN BERRY LOCK
       # -------------------------
-      - name: Setup Yarn
+      - name: Activate Yarn
         script: |
+          cd $ROOT_DIR
+
           corepack enable
           corepack prepare yarn@stable --activate
+
           yarn -v
 
       # -------------------------
-      # 3. CLEAN INSTALL (FIXED BERRY MODE)
+      # 3. DETERMINISTIC INSTALL (NO DRIFT)
       # -------------------------
-      - name: Install dependencies
+      - name: Install dependencies (locked)
         script: |
-          cd $CM_BUILD_DIR
+          cd $ROOT_DIR
 
-          # critical: avoid root confusion
           export YARN_IGNORE_PATH=1
 
           yarn install --immutable
 
       # -------------------------
-      # 4. IOS PODS
+      # 4. IOS POD INSTALL
       # -------------------------
       - name: Install CocoaPods
         script: |
-          cd ios
+          cd $ROOT_DIR/ios
+
           pod install --repo-update
 
       # -------------------------
-      # 5. VERIFY STRUCTURE
+      # 5. VERIFY IOS BUILD ENTRYPOINT
       # -------------------------
-      - name: Verify project structure
+      - name: Verify Xcode workspace
         script: |
-          cd $CM_BUILD_DIR
-          test -f package.json
-          test -f yarn.lock
+          cd $ROOT_DIR/ios
+
+          test -f Runner.xcworkspace
 
       # -------------------------
-      # 6. CLEAN BUILD
+      # 6. CLEAN BUILD (DETERMINISTIC)
       # -------------------------
       - name: Clean build
         script: |
+          cd $ROOT_DIR
+
           xcodebuild clean \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner
 
       # -------------------------
-      # 7. ARCHIVE
+      # 7. ARCHIVE (SIGNED)
       # -------------------------
       - name: Build archive
         script: |
+          cd $ROOT_DIR
+
           xcodebuild \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
@@ -88,6 +106,8 @@ workflows:
       # -------------------------
       - name: Export IPA
         script: |
+          cd $ROOT_DIR
+
           xcodebuild -exportArchive \
             -archivePath build/app.xcarchive \
             -exportOptionsPlist ios/exportOptions.plist \
