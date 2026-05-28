@@ -1,176 +1,62 @@
 workflows:
-  nexapay-dev:
-    name: NexaPay Dev Build
+  ios-production:
+    name: NexaPay iOS Production
 
-    max_build_duration: 60
-
-    integrations:
-      app_store_connect: tiligo_asc
-
-    environment:
-      xcode: latest
-
-      vars:
-        ENV: dev
-        ROOT_DIR: "$CM_BUILD_DIR/clone"
-
-    scripts:
-      - name: Lock root
-        script: |
-          cd $ROOT_DIR
-
-      - name: Yarn deterministic install
-        script: |
-          cd $ROOT_DIR
-          corepack enable
-          corepack prepare yarn@stable --activate
-          yarn install --immutable
-
-      - name: Build iOS
-        script: |
-          cd $ROOT_DIR/ios
-          pod install --repo-update
-
-      - name: Archive
-        script: |
-          cd $ROOT_DIR
-          xcodebuild \
-            -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Debug \
-            -archivePath build/dev.xcarchive \
-            archive
-
-    artifacts:
-      - build/*.ipa
-
-
-  nexapay-staging:
-    name: NexaPay Staging Release
-
-    max_build_duration: 90
-
-    integrations:
-      app_store_connect: tiligo_asc
-
-    environment:
-      xcode: latest
-
-      vars:
-        ENV: staging
-        ROOT_DIR: "$CM_BUILD_DIR/clone"
-
-    scripts:
-      - name: Root lock
-        script: |
-          cd $ROOT_DIR
-
-      - name: Deterministic install
-        script: |
-          cd $ROOT_DIR
-          corepack enable
-          yarn install --immutable
-
-      - name: CocoaPods sync
-        script: |
-          cd $ROOT_DIR/ios
-          pod install --repo-update
-
-      - name: Clean build
-        script: |
-          cd $ROOT_DIR
-          xcodebuild clean \
-            -workspace ios/Runner.xcworkspace \
-            -scheme Runner
-
-      - name: Archive (signed)
-        script: |
-          cd $ROOT_DIR
-          xcodebuild \
-            -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -archivePath build/staging.xcarchive \
-            archive
-
-    artifacts:
-      - build/*.ipa
-
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
-        beta_groups:
-          - internal-testers
-
-
-  nexapay-prod:
-    name: NexaPay Production Release (GATED)
-
+    instance_type: mac_mini_m2
     max_build_duration: 120
 
-    integrations:
-      app_store_connect: tiligo_asc
-
     environment:
+      flutter: stable
       xcode: latest
 
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.nexa-pay.app
+
       vars:
-        ENV: prod
-        ROOT_DIR: "$CM_BUILD_DIR/clone"
+        XCODE_WORKSPACE: ios/Runner.xcworkspace
+        XCODE_SCHEME: Runner
+
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+        - ios/Pods
+        - ~/Library/Caches/CocoaPods
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
 
     scripts:
-      - name: Root lock
-        script: |
-          cd $ROOT_DIR
+      - name: Flutter setup
+        script: flutter pub get
 
-      - name: Dependency freeze
-        script: |
-          cd $ROOT_DIR
-          corepack enable
-          yarn install --immutable
+      - name: Clean build
+        script: flutter clean
 
-      - name: Security pre-check
+      - name: Install iOS dependencies
         script: |
-          cd $ROOT_DIR
-          yarn audit || true
+          cd ios
+          pod repo update
+          pod install
+          cd ..
 
-      - name: CocoaPods sync
-        script: |
-          cd $ROOT_DIR/ios
-          pod install --repo-update
+      - name: Analyze project
+        script: flutter analyze
 
-      - name: Clean release build
-        script: |
-          cd $ROOT_DIR
-          xcodebuild clean \
-            -workspace ios/Runner.xcworkspace \
-            -scheme Runner
+      - name: Run tests (non-blocking)
+        script: flutter test || true
 
-      - name: Archive production
-        script: |
-          cd $ROOT_DIR
-          xcodebuild \
-            -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -archivePath build/prod.xcarchive \
-            archive
-
-      - name: Export IPA
-        script: |
-          cd $ROOT_DIR
-          xcodebuild -exportArchive \
-            -archivePath build/prod.xcarchive \
-            -exportOptionsPlist ios/exportOptions.plist \
-            -exportPath build/
+      - name: Build iOS IPA
+        script: flutter build ipa --release
 
     artifacts:
-      - build/*.ipa
+      - build/ios/ipa/*.ipa
 
     publishing:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
-        beta_groups:
-          - internal-testers
