@@ -1,0 +1,261 @@
+name: CryptoStripe Full Bootstrap
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Generate full CryptoStripe SaaS
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const path = require("path");
+
+            const files = {
+
+              "cryptostripe/app.py": `
+from fastapi import FastAPI, Header
+from core.tenants import TenantStore
+from core.engine import PaymentEngine
+from core.ledger import Ledger
+from chains.eth import ETHAdapter
+from chains.btc import BTCAdapter
+from webhooks.dispatcher import WebhookDispatcher
+
+app = FastAPI()
+
+tenants = TenantStore()
+ledger = Ledger()
+webhooks = WebhookDispatcher()
+
+engine = PaymentEngine(
+    ETHAdapter(),
+    BTCAdapter(),
+    ledger,
+    webhooks
+)
+
+@app.post("/create_tenant")
+def create_tenant(name: str):
+    return tenants.create(name).__dict__
+
+@app.post("/payment_intents")
+def create_payment(data: dict, api_key: str = Header(None)):
+    tenant = tenants.get(api_key)
+    if not tenant:
+        return {"error": "invalid api key"}
+
+    return engine.create_intent(
+        tenant.id,
+        data["amount"],
+        data["currency"],
+        data["chain"]
+    ).__dict__
+
+@app.get("/ledger/{tenant_id}")
+def get_ledger(tenant_id: str):
+    return ledger.get(tenant_id)
+              `,
+
+              "cryptostripe/core/tenants.py": `
+import uuid
+
+class Tenant:
+    def __init__(self, name):
+        self.id = str(uuid.uuid4())
+        self.name = name
+        self.api_key = "pk_" + uuid.uuid4().hex
+        self.secret = "sk_" + uuid.uuid4().hex
+
+class TenantStore:
+    def __init__(self):
+        self.tenants = {}
+
+    def create(self, name):
+        t = Tenant(name)
+        self.tenants[t.api_key] = t
+        return t
+
+    def get(self, api_key):
+        return self.tenants.get(api_key)
+              `,
+
+              "cryptostripe/core/ledger.py": `
+import time
+
+class Ledger:
+    def __init__(self):
+        self.events = []
+
+    def record(self, event):
+        event["ts"] = time.time()
+        self.events.append(event)
+
+    def get(self, tenant_id):
+        return [e for e in self.events if e.get("tenant_id") == tenant_id]
+              `,
+
+              "cryptostripe/core/engine.py": `
+import uuid
+import threading
+
+class PaymentEngine:
+    def __init__(self, eth, btc, ledger, webhooks):
+        self.eth = eth
+        self.btc = btc
+        self.ledger = ledger
+        self.webhooks = webhooks
+        self.store = {}
+
+    def create_intent(self, tenant_id, amount, currency, chain):
+
+        address = (
+            self.eth.create_address()
+            if chain == "ETH"
+            else self.btc.create_address()
+        )
+
+        intent_id = str(uuid.uuid4())
+
+        intent = {
+            "id": intent_id,
+            "tenant_id": tenant_id,
+            "amount": amount,
+            "currency": currency,
+            "chain": chain,
+            "address": address,
+            "status": "pending"
+        }
+
+        self.store[intent_id] = intent
+
+        self.ledger.record({
+            "type": "payment.created",
+            "tenant_id": tenant_id,
+            "intent_id": intent_id
+        })
+
+        threading.Thread(
+            target=self._watch,
+            args=(intent,),
+            daemon=True
+        ).start()
+
+        return intent
+
+    def _watch(self, intent):
+        import time
+
+        for _ in range(60):
+
+            ok = False
+
+            try:
+                if intent["chain"] == "ETH":
+                    ok = self.eth.verify_payment(intent["address"], intent["amount"])
+                else:
+                    ok = self.btc.verify_payment(intent["address"], intent["amount"])
+
+            except:
+                pass
+
+            if ok:
+                intent["status"] = "confirmed"
+
+                self.ledger.record({
+                    "type": "payment.confirmed",
+                    "tenant_id": intent["tenant_id"],
+                    "intent_id": intent["id"]
+                })
+
+                self.webhooks.emit("payment.confirmed", intent)
+
+                return
+
+            time.sleep(10)
+              `,
+
+              "cryptostripe/chains/eth.py": `
+import requests
+import uuid
+
+class ETHAdapter:
+    def create_address(self):
+        return "0x" + uuid.uuid4().hex[:40]
+
+    def verify_payment(self, address, amount):
+        r = requests.post(
+            "https://cloudflare-eth.com",
+            json={
+                "jsonrpc":"2.0",
+                "method":"eth_getBalance",
+                "params":[address,"latest"],
+                "id":1
+            }
+        )
+
+        wei = int(r.json()["result"], 16)
+        return wei / 1e18 >= amount
+              `,
+
+              "cryptostripe/chains/btc.py": `
+import requests
+import uuid
+
+class BTCAdapter:
+    def create_address(self):
+        return "bc1q" + uuid.uuid4().hex[:30]
+
+    def verify_payment(self, address, amount):
+        url = f"https://blockstream.info/api/address/{address}"
+        data = requests.get(url).json()
+
+        received = (
+            data["chain_stats"]["funded_txo_sum"] +
+            data["mempool_stats"]["funded_txo_sum"]
+        ) / 1e8
+
+        return received >= amount
+              `,
+
+              "cryptostripe/webhooks/dispatcher.py": `
+import requests
+
+class WebhookDispatcher:
+    def __init__(self):
+        self.subscribers = []
+
+    def register(self, url):
+        self.subscribers.append(url)
+
+    def emit(self, event, payload):
+        for url in self.subscribers:
+            try:
+                requests.post(url, json={
+                    "event": event,
+                    "data": payload
+                }, timeout=3)
+            except:
+                pass
+              `
+            };
+
+            for (const [filePath, content] of Object.entries(files)) {
+              fs.mkdirSync(path.dirname(filePath), { recursive: true });
+              fs.writeFileSync(filePath, content.trim());
+            }
+
+      - name: Commit & Push
+        run: |
+          git config user.name "cryptostripe-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add .
+          git commit -m "Bootstrap full CryptoStripe SaaS core"
+          git push origin HEAD
